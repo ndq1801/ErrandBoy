@@ -55,6 +55,21 @@ plugins:
     - access-control
 EOF
 
+# Optional auxiliary vision model: used for image analysis when the main
+# model is text-only (Hermes routes photos through the vision_analyze tool).
+# Only written when HERMES_VISION_MODEL is set — provider falls back to the
+# env-driven main provider, never hardcoded.
+if [ -n "${HERMES_VISION_MODEL:-}" ]; then
+    cat >> "${HERMES_HOME}/config.yaml" <<EOF
+
+auxiliary:
+  vision:
+    provider: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}
+    model: ${HERMES_VISION_MODEL}
+EOF
+    echo "Auxiliary vision model: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}/${HERMES_VISION_MODEL}"
+fi
+
 # 2. Plugins (versioned in this repo).
 if [ -d /app/plugins ]; then
     cp -r /app/plugins/. "${HERMES_HOME}/plugins/"
