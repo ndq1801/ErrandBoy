@@ -10,8 +10,42 @@ echo "HERMES_HOME=${HERMES_HOME}"
 
 mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,scripts,plugins}
 
-# 1. Config: repo file wins on every boot (git push = config deploy).
-cp /app/hermes/cli-config.yaml "${HERMES_HOME}/config.yaml"
+# 1. Config: generated from env vars (defaults below), so model/provider/
+# timezone changes need a Railway env edit, not a code push.
+# \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
+cat > "${HERMES_HOME}/config.yaml" <<EOF
+model:
+  default: ${HERMES_MODEL:-deepseek-v4-flash}
+  provider: ${HERMES_PROVIDER:-opencode-go}
+  base_url: ${HERMES_BASE_URL:-https://opencode.ai/zen/go/v1}
+  api_mode: ${HERMES_API_MODE:-chat_completions}
+
+# Cron runs in this timezone (cron jobs have no per-job timezone).
+timezone: ${HERMES_TIMEZONE:-Asia/Ho_Chi_Minh}
+
+mcp_servers:
+  daily_report:
+    command: node
+    args: ["/app/mcp-hub/mcp-daily-report/index.js"]
+    cwd: /app/mcp-hub/mcp-daily-report
+    env:
+      DAILY_REPORT_BASE_URL: \${DAILY_REPORT_BASE_URL}
+      DAILY_REPORT_USERNAME: \${DAILY_REPORT_USERNAME}
+      DAILY_REPORT_PASSWORD: \${DAILY_REPORT_PASSWORD}
+      DAILY_REPORT_LOGIN_FIELD: \${DAILY_REPORT_LOGIN_FIELD}
+  finlog:
+    command: python
+    args: ["/app/mcp-hub/mcp-finlog/index.py"]
+    cwd: /app/mcp-hub/mcp-finlog
+    env:
+      DATABASE_URL: \${DATABASE_URL}
+      FINLOG_TELEGRAM_USER_ID: \${TELEGRAM_HOME_CHANNEL}
+      FINLOG_MASTER_TELEGRAM_ID: \${TELEGRAM_HOME_CHANNEL}
+
+plugins:
+  enabled:
+    - access-control
+EOF
 
 # 2. Plugins (versioned in this repo).
 if [ -d /app/plugins ]; then

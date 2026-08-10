@@ -17,9 +17,9 @@ Telegram ──► Hermes gateway (polling)
 | Path | Purpose |
 |---|---|
 | `Dockerfile` | Build: python:3.13-slim + tini + Hermes Agent (git/node/npm for the runtime MCP hub clone) |
-| `entrypoint.sh` | Every boot: materialize config/plugins/secrets into `$HERMES_HOME`, clone/update MCP hub (`MCP_HUB_REPO_URL`), then `hermes gateway run` |
+| `entrypoint.sh` | Every boot: generate config.yaml from env vars, materialize plugins/secrets into `$HERMES_HOME`, clone/update MCP hub (`MCP_HUB_REPO_URL`), then `hermes gateway run` |
 | `railway.json` | Railway Dockerfile builder (no `startCommand` — it would bypass tini) |
-| `hermes/cli-config.yaml` | Hermes `config.yaml` template (model, timezone, mcp_servers, plugins) |
+| `hermes/cli-config.yaml` | Reference template of the env-driven defaults (entrypoint generates the real config) |
 | `hermes/SOUL.md` | Assistant persona (copied to `$HERMES_HOME/SOUL.md`) |
 | `plugins/access-control/` | Plugin: block state-changing MCP tools for unauthorized users |
 | `cron/check_user_hour.py` | Example `wakeAgent` gate script (user-local-time cron) |
@@ -46,11 +46,7 @@ Telegram ──► Hermes gateway (polling)
 - **State lives in the Volume**: `state.db`, sessions, memories, cron jobs,
   `config.yaml`, `.env`, skills. The repo only carries templates — every
   restart re-applies them over the volume (git push = config deploy).
-- **Config changes**: edit `hermes/cli-config.yaml` and redeploy; the
-  entrypoint copies it over the volume copy each boot.
-- **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder
-  at 18:00). Timezone is global via `timezone` in cli-config.yaml
-  (Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py`
-  as the job's `--script` gate.
+- **Config changes are env-driven**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`) and timezone (`HERMES_TIMEZONE`) are read from Railway env vars at boot with safe defaults — edit Variables, no code push needed. `entrypoint.sh` generates `config.yaml` from them every start.
+- **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` (default Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
   it later, put the entry back in `cli-config.yaml` + pass `SLACK_*` env vars.

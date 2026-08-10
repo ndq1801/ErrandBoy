@@ -1,6 +1,10 @@
-# Hermes Agent configuration for ErrandBoy.
-# Copied to $HERMES_HOME/config.yaml on every boot by entrypoint.sh.
-# Env placeholders like ${VAR} are resolved from $HERMES_HOME/.env.
+# REFERENCE TEMPLATE — not copied to the server anymore.
+# entrypoint.sh GENERATES $HERMES_HOME/config.yaml from env vars at boot
+# (HERMES_MODEL, HERMES_PROVIDER, HERMES_BASE_URL, HERMES_API_MODE,
+# HERMES_TIMEZONE). This file only documents the intended defaults.
+#
+# Env placeholders like ${VAR} in mcp_servers are resolved by Hermes from
+# $HERMES_HOME/.env at runtime.
 
 model:
   default: deepseek-v4-flash
