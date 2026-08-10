@@ -16,6 +16,11 @@ mcp_servers:
     command: node
     args: ["/app/mcp-hub/mcp-daily-report/index.js"]
     cwd: /app/mcp-hub/mcp-daily-report
+    env:
+      DAILY_REPORT_BASE_URL: ${DAILY_REPORT_BASE_URL}
+      DAILY_REPORT_USERNAME: ${DAILY_REPORT_USERNAME}
+      DAILY_REPORT_PASSWORD: ${DAILY_REPORT_PASSWORD}
+      DAILY_REPORT_LOGIN_FIELD: ${DAILY_REPORT_LOGIN_FIELD}
   finlog:
     command: python
     args: ["/app/mcp-hub/mcp-finlog/index.py"]
