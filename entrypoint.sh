@@ -44,4 +44,48 @@ if [ -f /app/hermes/SOUL.md ]; then
     cp /app/hermes/SOUL.md "${HERMES_HOME}/SOUL.md"
 fi
 
+# 6. MCP hub: clone/pull + install deps at runtime (env-driven URL, so MCP
+# updates land without rebuilding the image — same pattern as assistant-bot).
+ensure_mcp_hub() {
+    local repo="${MCP_HUB_REPO_URL:-https://github.com/ndq1801/slave_mcps.git}"
+    local hub="/app/mcp-hub"
+    if [ -z "${MCP_HUB_REPO_URL:-}" ]; then
+        echo "MCP_HUB_REPO_URL not set — using default repo ${repo}"
+    fi
+    if [ -d "${hub}/.git" ]; then
+        if ! git -C "${hub}" pull --ff-only --quiet; then
+            echo "Warning: MCP hub update failed, using existing copy"
+        fi
+    else
+        if ! git clone --depth 1 "${repo}" "${hub}"; then
+            echo "ERROR: MCP hub clone failed from ${repo}" >&2
+            exit 1
+        fi
+    fi
+    # Node deps for every server folder with a package.json.
+    for pkg in "${hub}"/*/package.json; do
+        [ -f "${pkg}" ] || continue
+        local dir
+        dir="$(dirname "${pkg}")"
+        echo "MCP hub: installing node deps for '$(basename "${dir}")'"
+        if ! npm --prefix "${dir}" install --no-audit --no-fund; then
+            echo "ERROR: npm install failed for '$(basename "${dir}")'" >&2
+            exit 1
+        fi
+    done
+    # Python deps for every server folder with a requirements.txt.
+    for req in "${hub}"/*/requirements.txt; do
+        [ -f "${req}" ] || continue
+        local dir
+        dir="$(dirname "${req}")"
+        echo "MCP hub: installing python deps for '$(basename "${dir}")'"
+        if ! (cd "${dir}" && pip install -q --break-system-packages -r requirements.txt); then
+            echo "Warning: pip install failed for '$(basename "${dir}")'"
+        fi
+    done
+    echo "MCP hub ready at ${hub}"
+}
+
+ensure_mcp_hub
+
 exec hermes gateway run

@@ -16,8 +16,8 @@ Telegram ──► Hermes gateway (polling)
 
 | Path | Purpose |
 |---|---|
-| `Dockerfile` | Build: python:3.13-slim + tini + Hermes Agent + pre-installed MCP servers |
-| `entrypoint.sh` | Every boot: materialize config/plugins/secrets into `$HERMES_HOME`, then `hermes gateway run` |
+| `Dockerfile` | Build: python:3.13-slim + tini + Hermes Agent (git/node/npm for the runtime MCP hub clone) |
+| `entrypoint.sh` | Every boot: materialize config/plugins/secrets into `$HERMES_HOME`, clone/update MCP hub (`MCP_HUB_REPO_URL`), then `hermes gateway run` |
 | `railway.json` | Railway Dockerfile builder (no `startCommand` — it would bypass tini) |
 | `hermes/cli-config.yaml` | Hermes `config.yaml` template (model, timezone, mcp_servers, plugins) |
 | `hermes/SOUL.md` | Assistant persona (copied to `$HERMES_HOME/SOUL.md`) |

@@ -1,6 +1,8 @@
 # ErrandBoy — Hermes Agent personal Telegram assistant (Railway)
-# Strategy: validated install.sh + tini approach (official Nous user story),
-# MCP servers pre-installed at build time to avoid cold-start downloads.
+# Strategy: validated install.sh + tini approach (official Nous user story).
+# The MCP hub (slave_mcps) is NOT baked in: entrypoint.sh clones/pulls it at
+# runtime from $MCP_HUB_REPO_URL (env-driven, same pattern as assistant-bot)
+# and installs its node/pip deps on every boot.
 
 FROM python:3.13-slim
 
@@ -19,12 +21,6 @@ ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"
 
 # Smoke test: the binary must resolve inside the image.
 RUN hermes --version
-
-# MCP hub servers (pre-installed so the gateway never downloads at runtime).
-ARG MCP_HUB_REPO=https://github.com/ndq1801/slave_mcps.git
-RUN git clone --depth 1 "${MCP_HUB_REPO}" /app/mcp-hub \
-    && (cd /app/mcp-hub/mcp-daily-report && npm install --omit=dev) \
-    && pip install --no-cache-dir --break-system-packages -r /app/mcp-hub/mcp-finlog/requirements.txt
 
 WORKDIR /app
 COPY . .
