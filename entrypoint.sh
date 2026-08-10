@@ -70,6 +70,32 @@ EOF
     echo "Auxiliary vision model: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}/${HERMES_VISION_MODEL}"
 fi
 
+# Title generation is DISABLED by default (auto-titling would otherwise use a
+# fast/cheap provider model — glm-5 for opencode-go — instead of the main
+# model). Only HERMES_TITLE_GENERATION=main opts back in, using the main
+# model; any other value keeps it disabled.
+case "${HERMES_TITLE_GENERATION:-off}" in
+    main)
+        cat >> "${HERMES_HOME}/config.yaml" <<EOF
+
+auxiliary:
+  title_generation:
+    provider: ${HERMES_PROVIDER}
+    model: ${HERMES_MODEL}
+EOF
+        echo "Auxiliary title_generation: main model (${HERMES_PROVIDER}/${HERMES_MODEL})"
+        ;;
+    *)
+        cat >> "${HERMES_HOME}/config.yaml" <<EOF
+
+auxiliary:
+  title_generation:
+    enabled: false
+EOF
+        echo "Auxiliary title_generation: disabled (HERMES_TITLE_GENERATION=${HERMES_TITLE_GENERATION:-unset})"
+        ;;
+esac
+
 # 2. Plugins (versioned in this repo).
 if [ -d /app/plugins ]; then
     cp -r /app/plugins/. "${HERMES_HOME}/plugins/"
