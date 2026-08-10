@@ -46,7 +46,7 @@ Telegram ──► Hermes gateway (polling)
 - **State lives in the Volume**: `state.db`, sessions, memories, cron jobs,
   `config.yaml`, `.env`, skills. The repo only carries templates — every
   restart re-applies them over the volume (git push = config deploy).
-- **Config changes are env-driven**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`) and timezone (`HERMES_TIMEZONE`) are read from Railway env vars at boot with safe defaults — edit Variables, no code push needed. `entrypoint.sh` generates `config.yaml` from them every start.
+- **Config is env-driven, no defaults in code**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`), timezone (`HERMES_TIMEZONE`) and the MCP hub URL (`MCP_HUB_REPO_URL`) are **required** Railway env vars — entrypoint fails fast on boot if any is missing. `entrypoint.sh` generates `config.yaml` from them every start.
 - **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` (default Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
   it later, put the entry back in `cli-config.yaml` + pass `SLACK_*` env vars.

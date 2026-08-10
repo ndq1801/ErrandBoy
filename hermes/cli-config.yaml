@@ -1,7 +1,8 @@
 # REFERENCE TEMPLATE — not copied to the server anymore.
-# entrypoint.sh GENERATES $HERMES_HOME/config.yaml from env vars at boot
-# (HERMES_MODEL, HERMES_PROVIDER, HERMES_BASE_URL, HERMES_API_MODE,
-# HERMES_TIMEZONE). This file only documents the intended defaults.
+# entrypoint.sh GENERATES $HERMES_HOME/config.yaml from REQUIRED env vars at
+# boot (HERMES_MODEL, HERMES_PROVIDER, HERMES_BASE_URL, HERMES_API_MODE,
+# HERMES_TIMEZONE, MCP_HUB_REPO_URL) — no defaults live in code. This file
+# only documents the intended shape.
 #
 # Env placeholders like ${VAR} in mcp_servers are resolved by Hermes from
 # $HERMES_HOME/.env at runtime.

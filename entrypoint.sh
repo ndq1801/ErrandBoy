@@ -8,20 +8,28 @@ set -euo pipefail
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 echo "HERMES_HOME=${HERMES_HOME}"
 
+# Required env vars — no defaults in code. Fail fast with a clear message so a
+# missing Railway Variable never boots a half-configured gateway silently.
+for _var in HERMES_MODEL HERMES_PROVIDER HERMES_BASE_URL HERMES_API_MODE HERMES_TIMEZONE MCP_HUB_REPO_URL; do
+    if [ -z "${!_var:-}" ]; then
+        echo "ERROR: required env var ${_var} is not set (add it to Railway Variables)" >&2
+        exit 1
+    fi
+done
+
 mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,scripts,plugins}
 
-# 1. Config: generated from env vars (defaults below), so model/provider/
-# timezone changes need a Railway env edit, not a code push.
+# 1. Config: generated from env vars (all values come from the environment).
 # \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
 cat > "${HERMES_HOME}/config.yaml" <<EOF
 model:
-  default: ${HERMES_MODEL:-deepseek-v4-flash}
-  provider: ${HERMES_PROVIDER:-opencode-go}
-  base_url: ${HERMES_BASE_URL:-https://opencode.ai/zen/go/v1}
-  api_mode: ${HERMES_API_MODE:-chat_completions}
+  default: ${HERMES_MODEL}
+  provider: ${HERMES_PROVIDER}
+  base_url: ${HERMES_BASE_URL}
+  api_mode: ${HERMES_API_MODE}
 
 # Cron runs in this timezone (cron jobs have no per-job timezone).
-timezone: ${HERMES_TIMEZONE:-Asia/Ho_Chi_Minh}
+timezone: ${HERMES_TIMEZONE}
 
 mcp_servers:
   daily_report:
@@ -81,11 +89,8 @@ fi
 # 6. MCP hub: clone/pull + install deps at runtime (env-driven URL, so MCP
 # updates land without rebuilding the image — same pattern as assistant-bot).
 ensure_mcp_hub() {
-    local repo="${MCP_HUB_REPO_URL:-https://github.com/ndq1801/slave_mcps.git}"
+    local repo="${MCP_HUB_REPO_URL}"
     local hub="/app/mcp-hub"
-    if [ -z "${MCP_HUB_REPO_URL:-}" ]; then
-        echo "MCP_HUB_REPO_URL not set — using default repo ${repo}"
-    fi
     if [ -d "${hub}/.git" ]; then
         if ! git -C "${hub}" pull --ff-only --quiet; then
             echo "Warning: MCP hub update failed, using existing copy"
