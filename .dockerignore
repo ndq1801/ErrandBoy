@@ -1,0 +1,10 @@
+# Never ship secrets or VCS internals into the image
+.env
+*.env.local
+.git/
+.hermes/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
