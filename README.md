@@ -7,7 +7,7 @@ Telegram bot, backed by the MCP servers from
 ```
 Telegram ──► Hermes gateway (polling)
                 ├── model: deepseek-v4-flash via OpenCode Go (opencode.ai/zen/go/v1)
-                ├── mcp_servers: daily_report (node), finlog (python)
+                ├── mcp_servers: daily_report (node), finlog (python), jina (npx)
                 ├── plugins: access-control (per-user x per-tool)
                 └── cron: scheduled jobs + wakeAgent gate scripts
 ```
@@ -37,6 +37,7 @@ Telegram ──► Hermes gateway (polling)
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USERS`, `TELEGRAM_HOME_CHANNEL`
    - `DAILY_REPORT_BASE_URL`, `DAILY_REPORT_USERNAME`, `DAILY_REPORT_PASSWORD`
    - `DATABASE_URL` (finlog Postgres)
+   - `JINA_API_KEY` (optional, for web page extraction via Jina Reader)
 4. Deploy. The gateway uses Telegram **polling**, so Railway never sleeps the
    service and cron jobs fire on time. Check `hermes mcp list` / `hermes doctor`
    via `railway logs` on first boot.

@@ -34,6 +34,11 @@ mcp_servers:
       DATABASE_URL: ${DATABASE_URL}
       FINLOG_TELEGRAM_USER_ID: ${TELEGRAM_HOME_CHANNEL}
       FINLOG_MASTER_TELEGRAM_ID: ${TELEGRAM_HOME_CHANNEL}
+  jina:
+    command: npx
+    args: ["-y", "jina-mcp-tools", "--transport", "stdio"]
+    env:
+      JINA_API_KEY: ${JINA_API_KEY}
 
 plugins:
   enabled:
