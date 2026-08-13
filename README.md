@@ -51,3 +51,34 @@ Telegram ──► Hermes gateway (polling)
 - **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` (default Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
   it later, put the entry back in `cli-config.yaml` + pass `SLACK_*` env vars.
+
+## Agent control model
+
+The gateway must never act without your consent:
+
+- **Shell commands** — `approvals.mode: manual`: every terminal command is
+  prompted in Telegram for approve/deny.
+- **File writes** — the `access-control` plugin gates `write_file`/`patch`:
+  writes under `$HERMES_HOME` and `/tmp` are allowed, writes to `/app/**`
+  are hard-blocked (infrastructure is immutable — change it via this repo),
+  `.env` and any other path require your approval in chat.
+- **Memory/skill writes** — staged for approval (`memory.write_approval`,
+  `skills.write_approval`).
+- **Cron changes** — the `cronjob` tool (create/update/pause/resume/remove/
+  run) prompts for approval; only `list` is free.
+- **Background LLM work** — disabled: memory/skill nudge forks
+  (`memory.nudge_interval: 0`, `skills.creation_nudge_interval: 0`) and the
+  curator (`curator.enabled: false`). The "typing…" bubble now appears only
+  while the bot actually processes your message.
+- **Cron sessions are pre-authorized** — scheduled jobs run without prompts
+  (e.g. the 17:40 auto-complete report job). A cron that needs a shell
+  command or an outside-path write will fail closed (nobody is there to
+  approve) — design such jobs as `no_agent` scripts instead.
+
+### Secrets
+
+`entrypoint.sh` regenerates `$HERMES_HOME/.env` from Railway Variables on
+every boot — anything hand-written into the container's `.env` is wiped at
+the next boot (this is how the Railway token was lost once). Secrets must be
+set as **Railway Variables**; scripts read them from the process environment
+or from the regenerated `.env`.
