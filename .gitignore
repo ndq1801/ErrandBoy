@@ -17,3 +17,6 @@ __pycache__/
 Thumbs.db
 .idea/
 .vscode/
+
+# Railway CLI local link
+.railway/
