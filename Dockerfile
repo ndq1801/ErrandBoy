@@ -13,13 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Hermes Agent (official installer, non-interactive).
-# PINNED: 97c06dc is main right before the 2026-08-13 "bump PTB 22.6 -> 22.8"
-# commit (91345435a1), which broke the Telegram adapter ("Any cannot be
-# instantiated") and was never tested upstream. --commit + --force-commit make
-# install.sh fetch this exact SHA and check it out (it is behind main, so the
-# rollback guard needs --force-commit). Unpin back to `main` once upstream
-# ships a working adapter with PTB 22.8.
-ARG HERMES_COMMIT=97c06dcfd7caa3e96c42f0ad36c52b1c36c38efe
+# PINNED to 07ee4a2e — Hermes main at 2026-08-12T08:16Z, the exact state of the
+# last known-good deployment. Later main commits (08-12 16:25Z..08-13 02:43Z:
+# plugin system overhaul, PTB 22.6->22.8 bump) broke Telegram connect with
+# "Any cannot be instantiated". --commit + --force-commit make install.sh
+# fetch this exact SHA (it is behind main, so the rollback guard needs
+# --force-commit). Unpin back to `main` once upstream ships a working
+# telegram adapter again — and re-test the control-model config first.
+ARG HERMES_COMMIT=07ee4a2ec8d3a678248d5e0bdc148a457c782d8d
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
         | bash -s -- --skip-setup --commit "${HERMES_COMMIT}" --force-commit
 ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"
