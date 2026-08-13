@@ -58,6 +58,56 @@ mcp_servers:
 plugins:
   enabled:
     - access-control
+
+# Control model: shell commands need manual approval, background LLM review
+# forks are disabled, memory/skill writes are staged for user approval, and
+# the curator never runs. Keeps the gateway from acting without consent.
+approvals:
+  mode: manual
+memory:
+  nudge_interval: 0
+  write_approval: true
+skills:
+  creation_nudge_interval: 0
+  write_approval: true
+curator:
+  enabled: false
+
+# Bound agent persistence: 25 tool iterations per turn (gateway + cron) stops
+# long "keep trying alternatives" loops — the agent must report failure
+# instead of hunting for workarounds for 30 minutes.
+agent:
+  max_turns: 25
+
+# Safe read-only terminal commands exempt from approval prompts (they also
+# run past the fail-closed cron approval, so cron jobs may use them).
+# Entries are exact or fnmatch globs over the FULL command string; compound
+# commands (&&, |, >, ...) never match. Keep only commands with no write,
+# delete, or exec capability.
+command_allowlist:
+  - "grep *"
+  - "ls *"
+  - "date *"
+  - "stat *"
+  - "wc *"
+  - "head *"
+  - "tail *"
+  - "df *"
+  - "du *"
+  - "pwd"
+  - "whoami"
+  - "uname *"
+  - "which *"
+  - "dirname *"
+  - "basename *"
+  - "realpath *"
+  - "readlink *"
+  - "sort *"
+  - "uniq *"
+  - "cut *"
+  - "tr *"
+  - "hermes sessions list"
+  - "hermes config get"
 EOF
 
 # Build a SINGLE merged auxiliary block. YAML duplicate keys would make the
