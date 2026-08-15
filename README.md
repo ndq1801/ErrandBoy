@@ -62,8 +62,7 @@ The gateway must never act without your consent:
   writes under `$HERMES_HOME` and `/tmp` are allowed, writes to `/app/**`
   are hard-blocked (infrastructure is immutable — change it via this repo),
   `.env` and any other path require your approval in chat.
-- **Memory/skill writes** — staged for approval (`memory.write_approval`,
-  `skills.write_approval`).
+- **Memory/skill writes** — saved directly, no approval (`memory.write_approval: false`, `skills.write_approval: false`).
 - **Cron changes** — the `cronjob` tool (create/update/pause/resume/remove/
   run) prompts for approval; only `list` is free.
 - **Background LLM work** — disabled: memory/skill nudge forks

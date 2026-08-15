@@ -60,16 +60,16 @@ plugins:
     - access-control
 
 # Control model: shell commands need manual approval, background LLM review
-# forks are disabled, memory/skill writes are staged for user approval, and
-# the curator never runs. Keeps the gateway from acting without consent.
+# forks are disabled, memory/skill writes are saved directly (no approval),
+# and the curator never runs. Keeps the gateway from acting without consent.
 approvals:
   mode: manual
 memory:
   nudge_interval: 0
-  write_approval: true
+  write_approval: false
 skills:
   creation_nudge_interval: 0
-  write_approval: true
+  write_approval: false
 curator:
   enabled: false
 
