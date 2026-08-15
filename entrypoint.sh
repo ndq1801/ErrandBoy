@@ -79,6 +79,15 @@ curator:
 agent:
   max_turns: 25
 
+# Show each user message's send-time to the model (e.g. [Sat 2026-08-15
+# 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old
+# conversation history when a session is resumed hours/days later. Timestamps
+# live in user messages only, so the cached system prompt stays byte-stable
+# and the provider prefix cache is preserved.
+gateway:
+  message_timestamps:
+    enabled: true
+
 # Safe read-only terminal commands exempt from approval prompts (they also
 # run past the fail-closed cron approval, so cron jobs may use them).
 # Entries are exact or fnmatch globs over the FULL command string; compound

@@ -43,3 +43,12 @@ mcp_servers:
 plugins:
   enabled:
     - access-control
+
+# Show each user message's send-time to the model (e.g. [Sat 2026-08-15
+# 10:00:00 +07]) so the agent never infers "now" from stale history when a
+# session is resumed later. Off by default in Hermes; entrypoint.sh generates
+# config.yaml with this enabled. Timestamps go into user messages only, so the
+# cached system prompt (provider prefix cache) is unaffected.
+gateway:
+  message_timestamps:
+    enabled: true
