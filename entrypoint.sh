@@ -50,8 +50,8 @@ mcp_servers:
       FINLOG_TELEGRAM_USER_ID: \${TELEGRAM_HOME_CHANNEL}
       FINLOG_MASTER_TELEGRAM_ID: \${TELEGRAM_HOME_CHANNEL}
   jina:
-    command: npx
-    args: ["-y", "jina-mcp-tools", "--transport", "stdio"]
+    command: node
+    args: ["/app/mcp/jina-fresh.js"]
     env:
       JINA_API_KEY: \${JINA_API_KEY}
 
