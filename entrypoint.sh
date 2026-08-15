@@ -50,8 +50,8 @@ mcp_servers:
       FINLOG_TELEGRAM_USER_ID: \${TELEGRAM_HOME_CHANNEL}
       FINLOG_MASTER_TELEGRAM_ID: \${TELEGRAM_HOME_CHANNEL}
   jina:
-    command: npx
-    args: ["-y", "jina-mcp-tools", "--transport", "stdio"]
+    command: node
+    args: ["/app/mcp/jina-fresh.js"]
     env:
       JINA_API_KEY: \${JINA_API_KEY}
 
@@ -78,6 +78,15 @@ curator:
 # instead of hunting for workarounds for 30 minutes.
 agent:
   max_turns: 25
+
+# Show each user message's send-time to the model (e.g. [Sat 2026-08-15
+# 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old
+# conversation history when a session is resumed hours/days later. Timestamps
+# live in user messages only, so the cached system prompt stays byte-stable
+# and the provider prefix cache is preserved.
+gateway:
+  message_timestamps:
+    enabled: true
 
 # Safe read-only terminal commands exempt from approval prompts (they also
 # run past the fail-closed cron approval, so cron jobs may use them).
