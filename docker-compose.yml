@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: errandboy_postgres
+    environment:
+      POSTGRES_USER: finlog_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: finlogbot_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finlog_user -d finlogbot_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  errandboy:
+    build: .
+    container_name: errandboy
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://finlog_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/finlogbot_db
+    volumes:
+      - hermes_data:/root/.hermes
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  hermes_data:

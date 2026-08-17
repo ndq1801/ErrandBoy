@@ -231,4 +231,15 @@ ensure_mcp_hub() {
 
 ensure_mcp_hub
 
+# 7. Run mcp-finlog database migrations (idempotent — Alembic stamps head if
+#    already applied, applies pending revisions otherwise).
+if [ -n "${DATABASE_URL:-}" ] && [ -d /app/mcp-hub/mcp-finlog/alembic ]; then
+    echo "Running mcp-finlog database migrations..."
+    if ! (cd /app/mcp-hub/mcp-finlog && python -m alembic upgrade head); then
+        echo "ERROR: mcp-finlog migration failed" >&2
+        exit 1
+    fi
+    echo "mcp-finlog migrations up to date"
+fi
+
 exec hermes gateway run
