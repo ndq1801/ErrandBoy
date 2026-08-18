@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# ErrandBoy — Hermes Agent gateway entrypoint (Railway).
+# ErrandBoy — Hermes Agent gateway entrypoint (Docker Compose on VPS).
 # Every boot: (re)materialize config + plugins + secrets into HERMES_HOME,
-# then start the gateway (Telegram polling keeps the Railway service awake,
+# then start the gateway (Telegram polling keeps the service awake,
 # which also keeps cron jobs running on time).
 set -euo pipefail
 
@@ -9,10 +9,10 @@ HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 echo "HERMES_HOME=${HERMES_HOME}"
 
 # Required env vars — no defaults in code. Fail fast with a clear message so a
-# missing Railway Variable never boots a half-configured gateway silently.
+# missing env var never boots a half-configured gateway silently.
 for _var in HERMES_MODEL HERMES_PROVIDER HERMES_BASE_URL HERMES_API_MODE HERMES_TIMEZONE MCP_HUB_REPO_URL; do
     if [ -z "${!_var:-}" ]; then
-        echo "ERROR: required env var ${_var} is not set (add it to Railway Variables)" >&2
+        echo "ERROR: required env var ${_var} is not set (add it to the container env)" >&2
         exit 1
     fi
 done

@@ -1,4 +1,4 @@
-# ErrandBoy — Hermes Agent personal Telegram assistant (Railway)
+# ErrandBoy — Hermes Agent personal Telegram assistant (Docker Compose on VPS)
 # Strategy: validated install.sh + tini approach (official Nous user story).
 # The MCP hub (slave_mcps) is NOT baked in: entrypoint.sh clones/pulls it at
 # runtime from $MCP_HUB_REPO_URL (env-driven, same pattern as assistant-bot)
@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # --force-commit). Unpin back to `main` once upstream ships a working
 # telegram adapter again — and re-test the control-model config first.
 ARG HERMES_COMMIT=07ee4a2ec8d3a678248d5e0bdc148a457c782d8d
-# Bump this value to force re-running install.sh (invalidates Railway's stale
+# Bump this value to force re-running install.sh (invalidates stale layer cache
 # layer cache where the hermes binary was missing).
 ARG CACHE_BUSTER=20260818
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
@@ -37,6 +37,6 @@ COPY . .
 # CRLF safety + exec bit (files checked out on Windows).
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
-# No CMD here on purpose: railway.json must NOT set startCommand either
+# No CMD here on purpose: docker-compose must NOT set command either
 # (it would override ENTRYPOINT and bypass tini).
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/app/entrypoint.sh"]

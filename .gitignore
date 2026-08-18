@@ -2,7 +2,7 @@
 .env
 *.env.local
 
-# Hermes state (lives in a Railway Volume, not in the repo)
+# Hermes state (lives in a Docker volume, not in the repo)
 .hermes/
 
 # Logs
@@ -17,6 +17,3 @@ __pycache__/
 Thumbs.db
 .idea/
 .vscode/
-
-# Railway CLI local link
-.railway/
