@@ -14,25 +14,67 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Pull code and start background build
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ env.VPS_HOST }}
           username: ${{ env.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          timeout: 30m
           script: |
             set -e
-
             echo "=== Pulling latest code ==="
             cd ${{ env.PROJECT_DIR }}
             git fetch origin main
             git reset --hard origin/main
 
-            echo "=== Rebuilding containers ==="
-            docker compose build errandboy
+            echo "=== Starting background build ==="
+            # Run build detached so the SSH session can close without killing it.
+            # Log to a file; exit code captured for the poll step to detect failure.
+            rm -f /tmp/errandboy-build.log /tmp/errandboy-build.exit
+            nohup setsid bash -c 'cd ${{ env.PROJECT_DIR }} && docker compose build errandboy > /tmp/errandboy-build.log 2>&1; echo $? > /tmp/errandboy-build.exit' > /dev/null 2>&1 &
+            echo "Build started in background (pid $!)"
 
+      - name: Wait for build to finish
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 60m
+          script: |
+            set -e
+            echo "=== Waiting for background build ==="
+            for i in $(seq 1 120); do
+              if [ -f /tmp/errandboy-build.exit ]; then
+                break
+              fi
+              sleep 15
+            done
+
+            if [ ! -f /tmp/errandboy-build.exit ]; then
+              echo "ERROR: build did not finish within 30 minutes" >&2
+              exit 1
+            fi
+
+            BUILD_EXIT=$(cat /tmp/errandboy-build.exit)
+            echo "=== Build finished with exit code $BUILD_EXIT ==="
+            if [ "$BUILD_EXIT" != "0" ]; then
+              echo "=== Build log (last 50 lines) ==="
+              tail -50 /tmp/errandboy-build.log
+              echo "ERROR: docker build failed" >&2
+              exit 1
+            fi
+
+      - name: Restart services and cleanup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
             echo "=== Restarting services ==="
+            cd ${{ env.PROJECT_DIR }}
             docker compose up -d --force-recreate errandboy
 
             echo "=== Cleanup old images ==="
