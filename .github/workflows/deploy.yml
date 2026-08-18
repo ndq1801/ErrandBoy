@@ -20,17 +20,17 @@ jobs:
           host: ${{ env.VPS_HOST }}
           username: ${{ env.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 30m
           script: |
             set -e
 
             echo "=== Pulling latest code ==="
-            cd ${{ env.PROJECT_DIR }}/ErrandBoy
+            cd ${{ env.PROJECT_DIR }}
             git fetch origin main
             git reset --hard origin/main
 
             echo "=== Rebuilding containers ==="
-            cd ${{ env.PROJECT_DIR }}
-            docker compose build --no-cache errandboy
+            docker compose build errandboy
 
             echo "=== Restarting services ==="
             docker compose up -d --force-recreate errandboy
