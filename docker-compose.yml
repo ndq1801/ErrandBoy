@@ -25,6 +25,8 @@ services:
       - DATABASE_URL=postgresql://finlog_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/finlogbot_db
     volumes:
       - hermes_data:/root/.hermes
+      - /usr/bin/rclone:/usr/bin/rclone:ro
+      - /root/.config/rclone:/root/.config/rclone
     depends_on:
       postgres:
         condition: service_healthy
