@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # --force-commit). Unpin back to `main` once upstream ships a working
 # telegram adapter again — and re-test the control-model config first.
 ARG HERMES_COMMIT=07ee4a2ec8d3a678248d5e0bdc148a457c782d8d
+# Bump this value to force re-running install.sh (invalidates Railway's stale
+# layer cache where the hermes binary was missing).
+ARG CACHE_BUSTER=20260818
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
         | bash -s -- --skip-setup --commit "${HERMES_COMMIT}" --force-commit
 ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"

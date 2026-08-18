@@ -4,6 +4,8 @@ Hermes Agent (Nous Research) personal assistant deployed on **Railway** as a
 Telegram bot, backed by the MCP servers from
 [slave_mcps](https://github.com/ndq1801/slave_mcps) (daily-report, finlog).
 
+> Trigger Railway rebuild for volume migration.
+
 ```
 Telegram ──► Hermes gateway (polling)
                 ├── model: deepseek-v4-flash via OpenCode Go (opencode.ai/zen/go/v1)
