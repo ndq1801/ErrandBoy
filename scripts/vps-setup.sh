@@ -51,6 +51,11 @@ if command -v rclone &> /dev/null; then
     echo "rclone already installed: $(rclone version | head -1)"
 else
     echo "--- Installing rclone ---"
+    # rclone install script needs unzip
+    if ! command -v unzip &> /dev/null; then
+        echo "--- Installing unzip (required by rclone installer) ---"
+        apt-get install -y -qq unzip
+    fi
     curl -fsSL https://rclone.org/install.sh | bash
     echo "rclone installed: $(rclone version | head -1)"
     echo "NOTE: Run 'rclone config' to set up OneDrive authentication."
