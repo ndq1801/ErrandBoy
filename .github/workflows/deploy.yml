@@ -24,12 +24,11 @@ jobs:
             set -e
 
             echo "=== Pulling latest code ==="
-            cd ${{ env.PROJECT_DIR }}/ErrandBoy
+            cd ${{ env.PROJECT_DIR }}
             git fetch origin main
             git reset --hard origin/main
 
             echo "=== Rebuilding containers ==="
-            cd ${{ env.PROJECT_DIR }}
             docker compose build --no-cache errandboy
 
             echo "=== Restarting services ==="
