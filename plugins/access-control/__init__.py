@@ -10,9 +10,9 @@ Control layers added for the ErrandBoy gateway:
           change it via the repo and redeploy), $HERMES_HOME and /tmp are
           allowed (except .env files, which always require approval), any
           other path requires the user's approval in chat.
-  tier 4: the cronjob tool (any action except list) requires approval, so
-          scheduled automation can only be created or changed with explicit
-          user consent.
+  Cron management (the cronjob tool and `hermes cron ...` shell commands) is
+  pre-authorized: the agent may create/update/pause/resume/remove/run jobs
+  without user approval.
 
 Policy notes:
 - Tools are matched by suffix (works regardless of the ``mcp_<server>__``
@@ -57,11 +57,6 @@ SENSITIVE_SUFFIXES = (
 # Built-in file-write tools (file toolset); read_file/search_files are
 # read-only and stay ungated.
 WRITE_TOOLS = ("write_file", "patch")
-
-# Built-in tool that manages cron jobs. Only ``list`` is read-only.
-CRON_TOOL = "cronjob"
-CRON_READ_ACTIONS = ("list",)
-
 
 def _allowed_users() -> set:
     raw = os.environ.get("ACCESS_CONTROL_ALLOWED_USERS") or os.environ.get("TELEGRAM_ALLOWED_USERS") or ""
@@ -140,13 +135,6 @@ def _on_pre_tool_call(tool_name: str, args: dict, task_id: str, **kwargs):
         else:
             target = (args or {}).get("path")
         return _gate_write_path(target)
-
-    # Tier 4: cron management (anything but listing) needs user consent.
-    if tool_name == CRON_TOOL:
-        action = (args or {}).get("action", "")
-        if action in CRON_READ_ACTIONS:
-            return None
-        return {"action": "approve", "message": f"cronjob '{action}' requires your approval."}
 
     return None
 

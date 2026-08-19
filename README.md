@@ -95,8 +95,9 @@ The gateway must never act without your consent:
   are hard-blocked (infrastructure is immutable — change it via this repo),
   `.env` and any other path require your approval in chat.
 - **Memory/skill writes** — saved directly, no approval (`memory.write_approval: false`, `skills.write_approval: false`).
-- **Cron changes** — the `cronjob` tool (create/update/pause/resume/remove/
-  run) prompts for approval; only `list` is free.
+- **Cron changes** — pre-authorized: the agent may create/update/pause/
+  resume/remove/run cron jobs without approval (both the `cronjob` tool and
+  `hermes cron ...` shell commands).
 - **Background LLM work** — disabled: memory/skill nudge forks
   (`memory.nudge_interval: 0`, `skills.creation_nudge_interval: 0`) and the
   curator (`curator.enabled: false`). The "typing…" bubble now appears only
