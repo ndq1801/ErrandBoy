@@ -27,12 +27,52 @@ Telegram ──► Hermes gateway (polling)
 
 ## Deploy to VPS
 
-1. Clone this repo on the VPS (e.g. `/srv/errandboy`).
-2. Create a `.env` file from `.env.example` and set the required vars.
-3. Run `docker compose up -d --build` (postgres + errandboy).
-4. The gateway uses Telegram **polling**, so the service stays awake and
-   cron jobs fire on time. Check `hermes mcp list` / `hermes doctor` via
-   `docker compose logs errandboy` on first boot.
+### Quick setup (recommended)
+
+Run the setup script — it installs dependencies, clones the repo, and starts
+the containers:
+
+```bash
+# Download and run the setup script
+curl -sL https://raw.githubusercontent.com/ndq1801/ErrandBoy/main/scripts/vps-setup.sh | bash
+```
+
+Or clone the repo first, then run the script:
+
+```bash
+git clone https://github.com/ndq1801/ErrandBoy.git /srv/errandboy
+cd /srv/errandboy
+chmod +x scripts/vps-setup.sh
+./scripts/vps-setup.sh
+```
+
+### Manual setup
+
+If you prefer to set up manually, install these dependencies on the VPS host
+(outside Docker):
+
+| Dependency | Purpose | Install |
+|---|---|---|
+| **Docker** | Run containers | `curl -fsSL https://get.docker.com \| sh` |
+| **docker-compose** | Orchestrate services | Included with Docker 20+ (`docker compose`) |
+| **Git** | Clone repo | `apt install git` |
+| **rclone** | Backup database to OneDrive | `curl -fsSL https://rclone.org/install.sh \| bash` |
+
+Then:
+
+1. Clone the repo: `git clone https://github.com/ndq1801/ErrandBoy.git /srv/errandboy`
+2. Create `.env`: `cp .env.example .env && nano .env` (fill in your values)
+3. Build and start: `docker compose up -d --build`
+
+### Notes
+
+- The gateway uses Telegram **polling**, so the service stays awake and cron
+  jobs fire on time. Check `hermes mcp list` / `hermes doctor` via
+  `docker compose logs errandboy` on first boot.
+- For OneDrive backups, configure rclone: `rclone config` (run once, follow
+  the interactive setup for Microsoft OneDrive).
+- Dependencies are installed on the **VPS host**, not inside Docker containers.
+  This means they persist across container recreates.
 
 ## Notes
 
