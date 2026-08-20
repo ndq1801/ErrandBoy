@@ -78,6 +78,12 @@ curator:
 # instead of hunting for workarounds for 30 minutes.
 agent:
   max_turns: 25
+  # Standing operator instructions injected into the system prompt as a
+  # stable block ("Operator instructions (from config):"). Prefer dedicated
+  # tools over shell workarounds so the agent uses the right tool for the job.
+  coding_instructions:
+    - "Prefer the dedicated tool for a task over shell workarounds: use the `cronjob` tool for scheduling (never edit ~/.hermes/cron/jobs.json or run crontab directly), use MCP tools for their domains, and use read_file/write_file/patch for file operations."
+    - "Reserve the terminal for builds, installs, git, processes, scripts, network, and package managers."
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old
