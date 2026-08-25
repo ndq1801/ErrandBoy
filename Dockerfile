@@ -13,17 +13,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Hermes Agent (official installer, non-interactive).
-# PINNED to 07ee4a2e — Hermes main at 2026-08-12T08:16Z, the exact state of the
-# last known-good deployment. Later main commits (08-12 16:25Z..08-13 02:43Z:
-# plugin system overhaul, PTB 22.6->22.8 bump) broke Telegram connect with
-# "Any cannot be instantiated". --commit + --force-commit make install.sh
-# fetch this exact SHA (it is behind main, so the rollback guard needs
-# --force-commit). Unpin back to `main` once upstream ships a working
-# telegram adapter again — and re-test the control-model config first.
-ARG HERMES_COMMIT=07ee4a2ec8d3a678248d5e0bdc148a457c782d8d
+# PINNED to 5ef1409f — Hermes main at 2026-08-25, the newest commit at upgrade
+# time (upgrade from 07ee4a2e to get the overhauled image_gen/openrouter
+# plugin: dedicated Image API routing + live model catalog). Pinned so future
+# upstream commits never affect this deployment; bump deliberately after
+# testing. NOTE: the old pin (07ee4a2e) existed because 08-12/08-13 commits
+# broke Telegram connect with "Any cannot be instantiated" — main now keeps
+# PTB 22.8 with recent telegram fixes, but re-test the gateway after deploy.
+# --commit + --force-commit make install.sh fetch this exact SHA (it is behind
+# main, so the rollback guard needs --force-commit).
+ARG HERMES_COMMIT=5ef1409f50484dddc38c9665b32a837ff1b191af
 # Bump this value to force re-running install.sh (invalidates stale layer cache
 # layer cache where the hermes binary was missing).
-ARG CACHE_BUSTER=20260818
+ARG CACHE_BUSTER=20260825
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
         | bash -s -- --skip-setup --commit "${HERMES_COMMIT}" --force-commit
 ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"
