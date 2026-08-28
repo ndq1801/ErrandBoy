@@ -54,6 +54,22 @@ mcp_servers:
     args: ["/app/mcp/jina-fresh.js"]
     env:
       JINA_API_KEY: \${JINA_API_KEY}
+  obsidian:
+    command: node
+    args: ["/app/mcp-hub/mcp-obsidian/index.js"]
+    cwd: /app/mcp-hub/mcp-obsidian
+    env:
+      OBSIDIAN_VAULT_PATH: \${OBSIDIAN_VAULT_PATH}
+  calendar:
+    command: node
+    args: ["/app/mcp-hub/mcp-calendar/index.js"]
+    cwd: /app/mcp-hub/mcp-calendar
+    env:
+      GOOGLE_CALENDAR_CLIENT_ID: \${GOOGLE_CALENDAR_CLIENT_ID}
+      GOOGLE_CALENDAR_CLIENT_SECRET: \${GOOGLE_CALENDAR_CLIENT_SECRET}
+      GOOGLE_CALENDAR_REFRESH_TOKEN: \${GOOGLE_CALENDAR_REFRESH_TOKEN}
+      GOOGLE_CALENDAR_ID: \${GOOGLE_CALENDAR_ID}
+      GOOGLE_CALENDAR_TIMEZONE: \${GOOGLE_CALENDAR_TIMEZONE}
 
 plugins:
   enabled:
@@ -197,6 +213,13 @@ DAILY_REPORT_PASSWORD=${DAILY_REPORT_PASSWORD:-}
 DAILY_REPORT_LOGIN_FIELD=${DAILY_REPORT_LOGIN_FIELD:-email}
 BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
 JINA_API_KEY=${JINA_API_KEY:-}
+# --- MCP: mcp-obsidian / mcp-calendar ---
+OBSIDIAN_VAULT_PATH=${OBSIDIAN_VAULT_PATH:-/root/obsidian-vault}
+GOOGLE_CALENDAR_CLIENT_ID=${GOOGLE_CALENDAR_CLIENT_ID:-}
+GOOGLE_CALENDAR_CLIENT_SECRET=${GOOGLE_CALENDAR_CLIENT_SECRET:-}
+GOOGLE_CALENDAR_REFRESH_TOKEN=${GOOGLE_CALENDAR_REFRESH_TOKEN:-}
+GOOGLE_CALENDAR_ID=${GOOGLE_CALENDAR_ID:-primary}
+GOOGLE_CALENDAR_TIMEZONE=${GOOGLE_CALENDAR_TIMEZONE:-Asia/Ho_Chi_Minh}
 EOF
 chmod 600 "${HERMES_HOME}/.env"
 

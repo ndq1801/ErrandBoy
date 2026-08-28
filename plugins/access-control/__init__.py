@@ -57,6 +57,14 @@ SENSITIVE_SUFFIXES = (
     "__add_category",
     "__update_category",
     "__delete_category",
+    # obsidian (mutations only; reads are harmless)
+    "__create_note",
+    "__append_note",
+    "__update_note",
+    # calendar (mutations only; reads are harmless)
+    "__create_event",
+    "__update_event",
+    "__delete_event",
 )
 
 # Built-in file-write tools (file toolset); read_file/search_files are

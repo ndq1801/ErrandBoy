@@ -7,7 +7,7 @@ Telegram bot, backed by the MCP servers from
 ```
 Telegram ──► Hermes gateway (polling)
                 ├── model: deepseek-v4-flash via OpenCode Go (opencode.ai/zen/go/v1)
-                ├── mcp_servers: daily_report (node), finlog (python), jina (node, no-cache wrapper)
+                ├── mcp_servers: daily_report (node), finlog (python), jina (node, no-cache wrapper), obsidian (node), calendar (node)
                 ├── plugins: access-control (per-user x per-tool)
                 └── cron: scheduled jobs + wakeAgent gate scripts
 ```

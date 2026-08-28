@@ -27,6 +27,7 @@ services:
       - hermes_data:/root/.hermes
       - /usr/bin/rclone:/usr/bin/rclone:ro
       - /root/.config/rclone:/root/.config/rclone
+      - vault_data:/root/obsidian-vault
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,3 +36,4 @@ services:
 volumes:
   postgres_data:
   hermes_data:
+  vault_data:
