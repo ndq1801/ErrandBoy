@@ -59,11 +59,20 @@ plugins:
   enabled:
     - access-control
 
-# Control model: shell commands need manual approval, background LLM review
-# forks are disabled, memory/skill writes are saved directly (no approval),
-# and the curator never runs. Keeps the gateway from acting without consent.
+# Control model: shell approvals run in smart mode — the guardian
+# auto-approves safe commands while approvals.deny hard-blocks anything
+# referencing /app or defined-source files. Background LLM review forks are
+# disabled, memory/skill writes are saved directly (no approval), and the
+# curator never runs. Keeps the gateway from acting without consent.
 approvals:
-  mode: manual
+  mode: smart
+  deny:
+    - "*config.yaml*"
+    - "*SOUL.md*"
+    - "*cli-config.yaml*"
+    - "*/.env*"
+    - "*/app/*"
+    - "* /app*"
 memory:
   nudge_interval: 0
   write_approval: false
