@@ -20,13 +20,29 @@ jobs:
           host: ${{ env.VPS_HOST }}
           username: ${{ env.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 5m
+          command_timeout: 15m
           script: |
             set -e
             echo "=== Pulling latest code ==="
             cd ${{ env.PROJECT_DIR }}
             git fetch origin main
+            PREV_COMMIT=$(git rev-parse HEAD)
             git reset --hard origin/main
+            NEW_COMMIT=$(git rev-parse HEAD)
+
+            echo "=== Checking if a full hermes rebuild is needed ==="
+            # A heavy rebuild (apt install + hermes install.sh) only happens when the
+            # Dockerfile changes (pinned HERMES_COMMIT / CACHE_BUSTER / base image /
+            # apt deps). Light changes (entrypoint, plugins, docs) reuse the cache.
+            # When the heavy path is taken, prune the build cache FIRST so a full
+            # rebuild does not overflow the disk (a 15GB cache + fresh layers
+            # previously caused "no space left on device").
+            if git diff --name-only "$PREV_COMMIT" "$NEW_COMMIT" -- Dockerfile | grep -q .; then
+              echo "Dockerfile changed (full rebuild) - pruning docker build cache"
+              docker builder prune -f
+            else
+              echo "Dockerfile unchanged - reusing build cache"
+            fi
 
             echo "=== Starting background build ==="
             # Run build detached so the SSH session can close without killing it.
