@@ -9,9 +9,10 @@ Control layers added for the ErrandBoy gateway:
           path — /app/** is hard-blocked (infrastructure is immutable;
           change it via the repo and redeploy), and the defined-source files
           (config.yaml/.env/SOUL.md/cli-config.yaml) are hard-blocked
-          anywhere they live, reverted on every boot by entrypoint.sh;
-          $HERMES_HOME and /tmp are allowed, any other path requires the
-          user's approval in chat.
+          anywhere they live, reverted on every boot by entrypoint.sh.
+          $HERMES_HOME, /tmp and DEV_PROJECTS_ROOTS (e.g. /root/projects, a
+          Docker volume persisted across redeploys) are allowed; any other
+          path requires the user's approval in chat.
   tier 4: terminal commands that reference /app or a defined-source file are
           hard-blocked (regardless of read/write intent); use the dedicated
           read_file/search_files tools instead.
@@ -61,6 +62,7 @@ SENSITIVE_SUFFIXES = (
     "__create_note",
     "__append_note",
     "__update_note",
+    "__delete_note",
     # calendar (mutations only; reads are harmless)
     "__create_event",
     "__update_event",
@@ -76,6 +78,11 @@ WRITE_TOOLS = ("write_file", "patch")
 # (including copies under $HERMES_HOME). Runtime state (memory/skills/cron)
 # is NOT in this set and stays freely writable by the agent.
 PROTECTED_BASENAMES = ("config.yaml", ".env", "SOUL.md", "cli-config.yaml")
+
+# Dev project roots: agent-editable code checked out here (persisted via the
+# projects_data Docker volume, so it survives redeploys). Unlike the /app
+# image, these are not infrastructure — writes are auto-allowed.
+DEV_PROJECTS_ROOTS = ("/root/projects",)
 
 # Tokens that mark a terminal command as touching /app or a defined-source
 # file. Any match blocks the command outright (even read-only ones) — the
@@ -127,6 +134,9 @@ def _gate_write_path(path):
         return None  # Runtime state under $HERMES_HOME (skills, scripts, ...)
     if p == "/tmp" or p.startswith("/tmp/"):
         return None  # Scratch space for one-off scripts
+    for root in DEV_PROJECTS_ROOTS:
+        if p == root or p.startswith(root + "/"):
+            return None  # Dev projects (persisted volume) the agent may edit
     return {"action": "approve", "message": f"Write outside allowed paths: {p} — approve or deny?"}
 
 
