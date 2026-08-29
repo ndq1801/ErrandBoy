@@ -37,6 +37,9 @@ services:
       # Agent-installed mutable state lives here and survives --force-recreate.
       - gh_config_data:/root/.config/gh
       - rclone_bisync_data:/root/.cache/rclone/bisync
+      # Persistent CLI tool directory: the agent installs long-lived tools
+      # here (/opt/tools/bin, first on PATH). Survives --force-recreate.
+      - /srv/errandboy/tools:/opt/tools
     depends_on:
       postgres:
         condition: service_healthy

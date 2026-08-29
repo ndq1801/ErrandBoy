@@ -19,6 +19,12 @@ done
 
 mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,scripts,plugins}
 
+# Persistent tool bin (tools_data / host bind): CLI tools the agent installs
+# here survive redeploys. Put it FIRST in PATH so agent-installed tools win
+# over ephemeral system-wide ones (which reset on every --force-recreate).
+mkdir -p /opt/tools/bin
+export PATH="/opt/tools/bin:${PATH}"
+
 # 1. Config: generated from env vars (all values come from the environment).
 # \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
 cat > "${HERMES_HOME}/config.yaml" <<EOF
@@ -109,6 +115,7 @@ agent:
   coding_instructions:
     - "Prefer the dedicated tool for a task over shell workarounds: use the 'cronjob' tool for scheduling (never edit ~/.hermes/cron/jobs.json or run crontab directly), use MCP tools for their domains, and use read_file/write_file/patch for file operations."
     - "Reserve the terminal for builds, installs, git, processes, scripts, network, and package managers."
+    - "When you need a CLI tool to persist across deploys (so the user does not have to reinstall it after each redeploy), ALWAYS install it into /opt/tools/bin (a persistent volume; already first on PATH). NEVER install tools system-wide via apt-get or into /usr/local/bin or ~/.local/bin — those are reset (wiped) on every container redeploy and the user will lose the tool. Prefer release binaries or user-space installs rewritten into /opt/tools/bin (e.g. curl a tarball and copy the binary there, incl. for pip/npm-installed CLIs)."
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old

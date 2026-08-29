@@ -83,11 +83,18 @@ Then:
   whole `/root`** (which stays ephemeral so image rebuilds are never shadowed
   by stale volume content). Persisted: `~/.config/gh` (gh auth token,
   `gh_config_data`), `~/.cache/rclone/bisync` (OneDrive sync state,
-  `rclone_bisync_data`), and `~/.gitconfig` via `GIT_CONFIG_GLOBAL` into the
-  `hermes_data` volume. Caches (`~/.cache`, `~/.npm`) reset on every deploy by
-  design. The GitHub CLI (`gh`) is **baked into the image** — any tool you want
-  to persist long-term should either be baked into the Dockerfile or have its
-  mutable state on one of these volumes.
+  `rclone_bisync_data`), `~/.gitconfig` via `GIT_CONFIG_GLOBAL` into the
+  `hermes_data` volume, and **long-lived CLI tools in `/opt/tools/bin`**
+  (host bind `/srv/errandboy/tools`, first on PATH). Caches (`~/.cache`,
+  `~/.npm`) reset on every deploy by design. The GitHub CLI (`gh`) is **baked
+  into the image**.
+- **How the agent installs tools** (enforced 3 ways): (1) a standing operator
+  instruction in `config.yaml` (`agent.coding_instructions`) tells the agent to
+  always install persistent tools into `/opt/tools/bin` and never system-wide
+  (`apt`, `/usr/local/bin`, `~/.local/bin`), since those are wiped on every
+  redeploy; (2) `/opt/tools/bin` is first on `PATH`; (3) the `access-control`
+  plugin auto-allows writes under `/opt/tools` and hard-blocks writes into
+  `EPHEMERAL_BIN_PATHS`.
 - **Config is env-driven, no defaults in code**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`), timezone (`HERMES_TIMEZONE`) and the MCP hub URL (`MCP_HUB_REPO_URL`) are **required** env vars — entrypoint fails fast on boot if any is missing. `entrypoint.sh` generates `config.yaml` from them every start.
 - **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` (default Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
