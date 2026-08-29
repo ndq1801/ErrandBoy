@@ -62,6 +62,7 @@ SENSITIVE_SUFFIXES = (
     "__create_note",
     "__append_note",
     "__update_note",
+    "__delete_note",
     # calendar (mutations only; reads are harmless)
     "__create_event",
     "__update_event",
