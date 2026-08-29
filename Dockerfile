@@ -33,6 +33,21 @@ ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"
 # Smoke test: the binary must resolve inside the image.
 RUN hermes --version
 
+# GitHub CLI — baked into the image (NOT runtime-installed into the container
+# writable layer): a plain binary install under /root would be lost on every
+# --force-recreate. Pinned release tarball from official cli/cli. Auth state
+# (hosts.yml) lives in the gh_config_data volume via ~/.config/gh, not here.
+ARG GH_VERSION=2.98.0
+RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+        -o /tmp/gh.tar.gz \
+    && tar -xzf /tmp/gh.tar.gz -C /tmp \
+    && cp /tmp/gh_${GH_VERSION}_linux_amd64/bin/gh /usr/local/bin/gh \
+    && rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_amd64 \
+    && gh --version | head -1
+# Clear the (empty at build-time) npm cache so nothing baked into the image
+# layer persists; runtime caches under /root reset on every --force-recreate.
+RUN npm cache clean --force 2>/dev/null || true
+
 WORKDIR /app
 COPY . .
 

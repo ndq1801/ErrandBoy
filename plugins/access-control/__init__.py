@@ -10,9 +10,11 @@ Control layers added for the ErrandBoy gateway:
           change it via the repo and redeploy), and the defined-source files
           (config.yaml/.env/SOUL.md/cli-config.yaml) are hard-blocked
           anywhere they live, reverted on every boot by entrypoint.sh.
-          $HERMES_HOME, /tmp and DEV_PROJECTS_ROOTS (e.g. /root/projects, a
-          Docker volume persisted across redeploys) are allowed; any other
-          path requires the user's approval in chat.
+          $HERMES_HOME, /tmp, DEV_PROJECTS_ROOTS (e.g. /root/projects) and
+          TOOLS_ROOT (/opt/tools — persistent CLI tools) are allowed; writes
+          into system-wide bin dirs (EPHEMERAL_BIN_PATHS, wiped on every
+          redeploy) are hard-blocked to steer installs into /opt/tools/bin;
+          any other path requires the user's approval in chat.
   tier 4: terminal commands that reference /app or a defined-source file are
           hard-blocked (regardless of read/write intent); use the dedicated
           read_file/search_files tools instead.
@@ -84,6 +86,16 @@ PROTECTED_BASENAMES = ("config.yaml", ".env", "SOUL.md", "cli-config.yaml")
 # image, these are not infrastructure — writes are auto-allowed.
 DEV_PROJECTS_ROOTS = ("/root/projects",)
 
+# Persistent CLI tool root (host bind /srv/errandboy/tools): the agent installs
+# long-lived tools here (first on PATH). Survives every --force-recreate.
+TOOLS_ROOT = "/opt/tools"
+
+# System-wide install locations that get WIPED on every container recreate.
+# Writing binaries here is pointless — rewrites/installs would vanish at the
+# next deploy. Force the agent to use /opt/tools/bin instead. Read-only use
+# (e.g. `ls /usr/bin`) is not affected; only write tool calls are gated.
+EPHEMERAL_BIN_PATHS = ("/usr/local/bin", "/usr/bin", "/root/.local/bin")
+
 # Tokens that mark a terminal command as touching /app or a defined-source
 # file. Any match blocks the command outright (even read-only ones) — the
 # agent has read_file/search_files for that.
@@ -137,6 +149,14 @@ def _gate_write_path(path):
     for root in DEV_PROJECTS_ROOTS:
         if p == root or p.startswith(root + "/"):
             return None  # Dev projects (persisted volume) the agent may edit
+    if p == TOOLS_ROOT or p.startswith(TOOLS_ROOT + "/"):
+        return None  # Persistent CLI tools (host bind); survive redeploys
+    for root in EPHEMERAL_BIN_PATHS:
+        if p == root or p.startswith(root + "/"):
+            return {
+                "action": "block",
+                "message": f"BLOCKED: {root} is wiped on every redeploy — install tools into {TOOLS_ROOT}/bin instead (persistent), or ask to write here.",
+            }
     return {"action": "approve", "message": f"Write outside allowed paths: {p} — approve or deny?"}
 
 
