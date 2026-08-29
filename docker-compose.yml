@@ -23,13 +23,20 @@ services:
     env_file: .env
     environment:
       - DATABASE_URL=postgresql://finlog_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/finlogbot_db
+      # git's global config lives in the persistent hermes volume so the gh
+      # credential helper setup survives --force-recreate.
+      - GIT_CONFIG_GLOBAL=/root/.hermes/.gitconfig
     volumes:
       - hermes_data:/root/.hermes
       - /usr/bin/rclone:/usr/bin/rclone:ro
       - /root/.config/rclone:/root/.config/rclone
       - vault_data:/root/obsidian-vault
       - projects_data:/root/projects
-      - home_data:/root
+      # Small, purpose-driven persistent mounts (NOT the whole home — /root stays
+      # ephemeral so image rebuilds are never shadowed by stale volume content).
+      # Agent-installed mutable state lives here and survives --force-recreate.
+      - gh_config_data:/root/.config/gh
+      - rclone_bisync_data:/root/.cache/rclone/bisync
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,4 +47,5 @@ volumes:
   hermes_data:
   vault_data:
   projects_data:
-  home_data:
+  gh_config_data:
+  rclone_bisync_data:

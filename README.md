@@ -79,13 +79,15 @@ Then:
 - **State lives in the Docker volume**: `state.db`, sessions, memories, cron
   jobs, `config.yaml`, `.env`, skills. The repo only carries templates —
   every restart re-applies them over the volume.
-- **The whole `/root` home is persisted** (`home_data` volume): anything the
-  agent installs or writes under its home survives redeploys — `~/.local/bin`
-  (user-space tools like the GitHub CLI), `~/.config/gh` (gh auth token),
-  `~/.cache/rclone/bisync` (OneDrive sync state) and similar. The agent should
-  install tools **user-space** (e.g. `pip install --user`, a release binary
-  under `~/.local/bin`) so they stay on PATH and survive container recreates;
-  system-wide installs (`apt`, `/usr/local`) are still reset on every deploy.
+- **Mutable agent state is persisted via small purpose-driven mounts, NOT the
+  whole `/root`** (which stays ephemeral so image rebuilds are never shadowed
+  by stale volume content). Persisted: `~/.config/gh` (gh auth token,
+  `gh_config_data`), `~/.cache/rclone/bisync` (OneDrive sync state,
+  `rclone_bisync_data`), and `~/.gitconfig` via `GIT_CONFIG_GLOBAL` into the
+  `hermes_data` volume. Caches (`~/.cache`, `~/.npm`) reset on every deploy by
+  design. The GitHub CLI (`gh`) is **baked into the image** — any tool you want
+  to persist long-term should either be baked into the Dockerfile or have its
+  mutable state on one of these volumes.
 - **Config is env-driven, no defaults in code**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`), timezone (`HERMES_TIMEZONE`) and the MCP hub URL (`MCP_HUB_REPO_URL`) are **required** env vars — entrypoint fails fast on boot if any is missing. `entrypoint.sh` generates `config.yaml` from them every start.
 - **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` (default Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
