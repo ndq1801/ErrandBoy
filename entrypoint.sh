@@ -5,8 +5,12 @@
 # which also keeps cron jobs running on time).
 set -euo pipefail
 
-HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+HERMES_HOME="${HERMES_HOME:-/root/.hermes}"
 echo "HERMES_HOME=${HERMES_HOME}"
+
+# Persistent CLI tool root (single source: TOOLS_ROOT env, see .env.example).
+TOOLS_ROOT="${TOOLS_ROOT:-/opt/tools}"
+echo "TOOLS_ROOT=${TOOLS_ROOT}"
 
 # Required env vars — no defaults in code. Fail fast with a clear message so a
 # missing env var never boots a half-configured gateway silently.
@@ -22,8 +26,8 @@ mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,
 # Persistent tool bin (tools_data / host bind): CLI tools the agent installs
 # here survive redeploys. Put it FIRST in PATH so agent-installed tools win
 # over ephemeral system-wide ones (which reset on every --force-recreate).
-mkdir -p /opt/tools/bin
-export PATH="/opt/tools/bin:${PATH}"
+mkdir -p "${TOOLS_ROOT}/bin"
+export PATH="${TOOLS_ROOT}/bin:${PATH}"
 
 # 1. Config: generated from env vars (all values come from the environment).
 # \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
@@ -115,7 +119,7 @@ agent:
   coding_instructions:
     - "Prefer the dedicated tool for a task over shell workarounds: use the 'cronjob' tool for scheduling (never edit ~/.hermes/cron/jobs.json or run crontab directly), use MCP tools for their domains, and use read_file/write_file/patch for file operations."
     - "Reserve the terminal for builds, installs, git, processes, scripts, network, and package managers."
-    - "When you need a CLI tool to persist across deploys (so the user does not have to reinstall it after each redeploy), ALWAYS install it into /opt/tools/bin (a persistent volume; already first on PATH). NEVER install tools system-wide via apt-get or into /usr/local/bin or ~/.local/bin — those are reset (wiped) on every container redeploy and the user will lose the tool. Prefer release binaries or user-space installs rewritten into /opt/tools/bin (e.g. curl a tarball and copy the binary there, incl. for pip/npm-installed CLIs)."
+    - "When you need a CLI tool to persist across deploys (so the user does not have to reinstall it after each redeploy), ALWAYS install it into ${TOOLS_ROOT}/bin (a persistent volume; already first on PATH). NEVER install tools system-wide via apt-get or into /usr/local/bin or ~/.local/bin — those are reset (wiped) on every container redeploy and the user will lose the tool. Prefer release binaries or user-space installs rewritten into ${TOOLS_ROOT}/bin (e.g. curl a tarball and copy the binary there, incl. for pip/npm-installed CLIs)."
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old
@@ -221,7 +225,7 @@ DAILY_REPORT_LOGIN_FIELD=${DAILY_REPORT_LOGIN_FIELD:-email}
 BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
 JINA_API_KEY=${JINA_API_KEY:-}
 # --- MCP: mcp-obsidian / mcp-calendar ---
-OBSIDIAN_VAULT_PATH=${OBSIDIAN_VAULT_PATH:-/root/obsidian-vault}
+OBSIDIAN_VAULT_PATH=${OBSIDIAN_VAULT_PATH}
 GOOGLE_CALENDAR_CLIENT_ID=${GOOGLE_CALENDAR_CLIENT_ID:-}
 GOOGLE_CALENDAR_CLIENT_SECRET=${GOOGLE_CALENDAR_CLIENT_SECRET:-}
 GOOGLE_CALENDAR_REFRESH_TOKEN=${GOOGLE_CALENDAR_REFRESH_TOKEN:-}
