@@ -10,11 +10,12 @@ Control layers added for the ErrandBoy gateway:
           change it via the repo and redeploy), and the defined-source files
           (config.yaml/.env/SOUL.md/cli-config.yaml) are hard-blocked
           anywhere they live, reverted on every boot by entrypoint.sh.
-          $HERMES_HOME, /tmp, DEV_PROJECTS_ROOTS (e.g. /root/projects) and
-          TOOLS_ROOT (/opt/tools — persistent CLI tools) are allowed; writes
-          into system-wide bin dirs (EPHEMERAL_BIN_PATHS, wiped on every
-          redeploy) are hard-blocked to steer installs into /opt/tools/bin;
-          any other path requires the user's approval in chat.
+          $HERMES_HOME, /tmp, DEV_PROJECTS_ROOTS (e.g. /root/projects),
+          TOOLS_ROOT (/opt/tools — persistent CLI tools) and the Obsidian
+          vault (OBSIDIAN_VAULT_ROOT, user notes on a persisted volume) are
+          allowed; writes into system-wide bin dirs (EPHEMERAL_BIN_PATHS,
+          wiped on every redeploy) are hard-blocked to steer installs into
+          /opt/tools/bin; any other path requires the user's approval in chat.
   tier 4: terminal commands that reference /app or a defined-source file are
           hard-blocked (regardless of read/write intent); use the dedicated
           read_file/search_files tools instead.
@@ -84,11 +85,17 @@ PROTECTED_BASENAMES = ("config.yaml", ".env", "SOUL.md", "cli-config.yaml")
 # Dev project roots: agent-editable code checked out here (persisted via the
 # projects_data Docker volume, so it survives redeploys). Unlike the /app
 # image, these are not infrastructure — writes are auto-allowed.
-DEV_PROJECTS_ROOTS = ("/root/projects",)
+DEV_PROJECTS_ROOTS = (os.environ.get("DEV_PROJECTS_PATH") or "/root/projects",)
 
 # Persistent CLI tool root (host bind /srv/errandboy/tools): the agent installs
 # long-lived tools here (first on PATH). Survives every --force-recreate.
-TOOLS_ROOT = "/opt/tools"
+TOOLS_ROOT = os.environ.get("TOOLS_ROOT") or "/opt/tools"
+
+# Obsidian vault (volume vault_data, host bind /srv/errandboy/vault): the
+# agent manages markdown notes here via MCP tools and direct file writes.
+# Notes are user data on a persisted volume — auto-allow writes so vault
+# edits never trigger approval.
+OBSIDIAN_VAULT_ROOT = os.environ.get("OBSIDIAN_VAULT_PATH") or "/root/obsidian-vault"
 
 # System-wide install locations that get WIPED on every container recreate.
 # Writing binaries here is pointless — rewrites/installs would vanish at the
@@ -151,6 +158,8 @@ def _gate_write_path(path):
             return None  # Dev projects (persisted volume) the agent may edit
     if p == TOOLS_ROOT or p.startswith(TOOLS_ROOT + "/"):
         return None  # Persistent CLI tools (host bind); survive redeploys
+    if p == OBSIDIAN_VAULT_ROOT or p.startswith(OBSIDIAN_VAULT_ROOT + "/"):
+        return None  # Obsidian vault (persisted volume); user notes live here
     for root in EPHEMERAL_BIN_PATHS:
         if p == root or p.startswith(root + "/"):
             return {
