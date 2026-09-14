@@ -1,0 +1,8 @@
+name: 9router
+version: 1.0.0
+description: "9router image generation backend — text-to-image via an OpenAI-compatible gateway (/v1/images/generations)"
+author: ndq1801
+kind: backend
+requires_env:
+  - ROUTER9_BASE_URL
+  - ROUTER9_API_KEY
