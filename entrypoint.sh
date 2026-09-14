@@ -14,7 +14,7 @@ echo "TOOLS_ROOT=${TOOLS_ROOT}"
 
 # Required env vars — no defaults in code. Fail fast with a clear message so a
 # missing env var never boots a half-configured gateway silently.
-for _var in HERMES_MODEL HERMES_PROVIDER HERMES_BASE_URL HERMES_API_MODE HERMES_TIMEZONE MCP_HUB_REPO_URL; do
+for _var in HERMES_MODEL HERMES_PROVIDER HERMES_BASE_URL HERMES_API_MODE HERMES_TIMEZONE MCP_HUB_REPO_URL ROUTER9_API_KEY; do
     if [ -z "${!_var:-}" ]; then
         echo "ERROR: required env var ${_var} is not set (add it to the container env)" >&2
         exit 1
@@ -32,11 +32,22 @@ export PATH="${TOOLS_ROOT}/bin:${PATH}"
 # 1. Config: generated from env vars (all values come from the environment).
 # \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
 cat > "${HERMES_HOME}/config.yaml" <<EOF
+# Custom OpenAI-compatible gateway (9router). Declared as a NAMED provider so the
+# model picker can probe {base_url}/models and list what the gateway offers; the
+# main model still uses provider: custom (the documented form for an arbitrary
+# endpoint) and reads its key from ROUTER9_API_KEY via a \${...} reference below.
+providers:
+  "9router":
+    api: ${HERMES_BASE_URL}
+    key_env: ROUTER9_API_KEY
+    transport: chat_completions
+
 model:
   default: ${HERMES_MODEL}
   provider: ${HERMES_PROVIDER}
   base_url: ${HERMES_BASE_URL}
   api_mode: ${HERMES_API_MODE}
+  api_key: \${ROUTER9_API_KEY}
 
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: ${HERMES_TIMEZONE}
@@ -84,6 +95,10 @@ mcp_servers:
 plugins:
   enabled:
     - access-control
+    # Image generation backend for the custom gateway (user plugin copied into
+    # $HERMES_HOME/plugins/image_gen/9router by step 2). User plugins are opt-in:
+    # without this entry the image_generate tool stays hidden from the agent.
+    - image_gen/9router
 
 # Control model: shell approvals run in smart mode — the guardian
 # auto-approves safe commands while approvals.deny hard-blocks anything
@@ -161,10 +176,32 @@ command_allowlist:
   - "hermes config get"
 EOF
 
+# Optional: image generation through the custom gateway. Requires the repo's
+# plugins/image_gen/9router backend (copied into $HERMES_HOME in step 2 and
+# enabled under plugins.enabled). The id below is a 9router combo name and is
+# forwarded verbatim, so generation only returns an image once that combo points
+# at a real image model.
+if [ -n "${HERMES_IMAGE_MODEL:-}" ]; then
+    cat >> "${HERMES_HOME}/config.yaml" <<EOF
+
+image_gen:
+  provider: ${HERMES_IMAGE_PROVIDER:-9router}
+  model: ${HERMES_IMAGE_MODEL}
+EOF
+    echo "Image generation: ${HERMES_IMAGE_PROVIDER:-9router}/${HERMES_IMAGE_MODEL}"
+fi
+
 # Build a SINGLE merged auxiliary block. YAML duplicate keys would make the
 # last block win (Hermes reloads/rewrites config.yaml), so writing multiple
 # separate "auxiliary:" sections would silently drop earlier ones.
-AUX_ENTRIES=""
+# Auxiliary calls are NON-streaming by default, but this gateway appends an SSE
+# `data: [DONE]` marker to non-streaming bodies unless the request carries an
+# explicit `stream` field — which would break the JSON parse in every aux task
+# (vision, compression, session search, MCP helpers...). Declaring the main
+# endpoint here makes Hermes stream and aggregate aux responses instead.
+AUX_ENTRIES="  stream_only_base_urls:
+    - ${HERMES_BASE_URL}
+"
 if [ -n "${HERMES_VISION_MODEL:-}" ]; then
     AUX_ENTRIES="${AUX_ENTRIES}  vision:
     provider: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}
@@ -174,7 +211,7 @@ if [ -n "${HERMES_VISION_MODEL:-}" ]; then
 fi
 
 # Title generation is DISABLED by default (auto-titling would otherwise use a
-# fast/cheap provider model — glm-5 for opencode-go — instead of the main
+# fast/cheap gateway model — instead of the main
 # model). Only HERMES_TITLE_GENERATION=main opts back in with the main model.
 case "${HERMES_TITLE_GENERATION:-off}" in
     main)
@@ -212,7 +249,10 @@ fi
 
 # 4. Secrets: Hermes loads $HERMES_HOME/.env with override=True.
 cat > "${HERMES_HOME}/.env" <<EOF
-OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY:-}
+# Custom gateway credentials. ROUTER9_BASE_URL is derived from HERMES_BASE_URL so
+# the endpoint lives in one place; the image_gen/9router plugin reads both.
+ROUTER9_BASE_URL=${HERMES_BASE_URL}
+ROUTER9_API_KEY=${ROUTER9_API_KEY:-}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
 TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
 TELEGRAM_HOME_CHANNEL=${TELEGRAM_HOME_CHANNEL:-}

@@ -13,19 +13,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Hermes Agent (official installer, non-interactive).
-# PINNED to 5ef1409f — Hermes main at 2026-08-25, the newest commit at upgrade
-# time (upgrade from 07ee4a2e to get the overhauled image_gen/openrouter
-# plugin: dedicated Image API routing + live model catalog). Pinned so future
-# upstream commits never affect this deployment; bump deliberately after
-# testing. NOTE: the old pin (07ee4a2e) existed because 08-12/08-13 commits
-# broke Telegram connect with "Any cannot be instantiated" — main now keeps
-# PTB 22.8 with recent telegram fixes, but re-test the gateway after deploy.
+# PINNED to v0.21.2 (tag v2026.9.11) — the newest official release at the time
+# the bot was moved off the built-in `opencode-go` provider onto the
+# self-hosted 9router gateway (a custom OpenAI-compatible endpoint). v0.21.1+
+# also ships upstream PR #101864, which sends the OpenCode `x-opencode-session`
+# header natively, so the old in-container `default_headers` workaround is no
+# longer needed. Pinned to a release TAG (not main HEAD) so the deployed build
+# stays reproducible; bump deliberately after testing. NOTE: 08-12/08-13
+# commits once broke Telegram connect with "Any cannot be instantiated" — always
+# re-test the gateway after a pin bump.
 # --commit + --force-commit make install.sh fetch this exact SHA (it is behind
 # main, so the rollback guard needs --force-commit).
-ARG HERMES_COMMIT=5ef1409f50484dddc38c9665b32a837ff1b191af
-# Bump this value to force re-running install.sh (invalidates stale layer cache
-# layer cache where the hermes binary was missing).
-ARG CACHE_BUSTER=20260825
+ARG HERMES_COMMIT=2160b2d59c87316e82f749d77c1f25969bea1533
+# Bump this value to force re-running install.sh (invalidates the stale layer
+# cache where the hermes binary was missing).
+ARG CACHE_BUSTER=20260911
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
         | bash -s -- --skip-setup --commit "${HERMES_COMMIT}" --force-commit
 ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"

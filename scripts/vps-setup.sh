@@ -85,9 +85,9 @@ echo "=== Creating .env file ==="
 if [ ! -f .env ]; then
     cat > .env << 'ENVFILE'
 # === AI Model ===
-HERMES_MODEL=mimo-v2.5
-HERMES_PROVIDER=opencode-go
-HERMES_BASE_URL=https://opencode.ai/zen/go/v1
+HERMES_MODEL=hermes-chat
+HERMES_PROVIDER=custom
+HERMES_BASE_URL=https://9router.olelukoie.online/v1
 HERMES_API_MODE=chat_completions
 HERMES_TIMEZONE=Asia/Ho_Chi_Minh
 MCP_HUB_REPO_URL=https://github.com/ndq1801/slave_mcps.git
@@ -111,7 +111,11 @@ DAILY_REPORT_LOGIN_FIELD=email
 # === Optional ===
 BRAVE_SEARCH_API_KEY=
 JINA_API_KEY=
-OPENCODE_GO_API_KEY=
+ROUTER9_API_KEY=
+HERMES_VISION_MODEL=hermes-vision
+HERMES_VISION_PROVIDER=custom
+HERMES_IMAGE_MODEL=hermes-image
+HERMES_IMAGE_PROVIDER=9router
 ENVFILE
     chmod 600 .env
     echo "Created .env — EDIT IT with your actual values!"
