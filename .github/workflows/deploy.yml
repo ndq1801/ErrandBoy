@@ -95,5 +95,22 @@ jobs:
             cd ${{ env.PROJECT_DIR }}
             docker compose up -d --force-recreate errandboy
 
+            echo "=== Verifying the new container came up ==="
+            # Recreating the container is what turns the PREVIOUS image into a
+            # dangling one. Only prune after the new container is actually running,
+            # otherwise the old image is our rollback path and must stay on disk.
+            if [ "$(docker inspect -f '{{.State.Running}}' errandboy 2>/dev/null)" != "true" ]; then
+              echo "ERROR: errandboy is not running after recreate - keeping the previous image" >&2
+              docker logs --tail 50 errandboy || true
+              exit 1
+            fi
+
+            echo "=== Cleaning up the replaced image and unused cache ==="
+            # The disk peak happens DURING the build (old + new image coexist), so
+            # this cannot prevent a mid-build ENOSPC; it prevents stale errandboy
+            # images (~7.9GB each) from accumulating deploy after deploy.
+            docker image prune -f
+            docker builder prune -f
+
             echo "=== Deploy complete ==="
             docker compose ps
