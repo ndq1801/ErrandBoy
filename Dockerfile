@@ -35,8 +35,11 @@ ARG HERMES_COMMIT=939e45c91d751fadd94dcd1b873ac3cb44846213
 # Bump this value to force re-running install.sh (invalidates the stale layer
 # cache where the hermes binary was missing).
 ARG CACHE_BUSTER=20260914
-RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
-        | bash -s -- --skip-setup --commit "${HERMES_COMMIT}" --force-commit
+RUN curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+        "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
+        -o /tmp/hermes-install.sh \
+    && bash /tmp/hermes-install.sh --skip-setup --commit "${HERMES_COMMIT}" --force-commit \
+    && rm -f /tmp/hermes-install.sh
 ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"
 
 # Smoke test: the binary must resolve inside the image.
