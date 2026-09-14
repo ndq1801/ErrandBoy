@@ -22,12 +22,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # stays reproducible; bump deliberately after testing. NOTE: 08-12/08-13
 # commits once broke Telegram connect with "Any cannot be instantiated" — always
 # re-test the gateway after a pin bump.
+# NOTE: this must be the tag's COMMIT sha, not the annotated tag-object sha.
+# The GitHub refs API returns the tag OBJECT for an annotated tag, and
+# raw.githubusercontent.com 404s on it (this broke the 2026-09-14 deploy:
+# curl (22) 404 -> install.sh never ran -> the `hermes --version` smoke test
+# failed with exit 127). Dereference before pinning:
+#   gh api repos/NousResearch/hermes-agent/git/ref/tags/v2026.9.11   (object.sha = tag object)
+#   gh api <that object url>                                          (object.sha = commit)
 # --commit + --force-commit make install.sh fetch this exact SHA (it is behind
 # main, so the rollback guard needs --force-commit).
-ARG HERMES_COMMIT=2160b2d59c87316e82f749d77c1f25969bea1533
+ARG HERMES_COMMIT=939e45c91d751fadd94dcd1b873ac3cb44846213
 # Bump this value to force re-running install.sh (invalidates the stale layer
 # cache where the hermes binary was missing).
-ARG CACHE_BUSTER=20260911
+ARG CACHE_BUSTER=20260914
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
         | bash -s -- --skip-setup --commit "${HERMES_COMMIT}" --force-commit
 ENV PATH="/root/.local/bin:/root/.hermes/hermes-agent/venv/bin:${PATH}"
