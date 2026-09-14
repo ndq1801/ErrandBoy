@@ -51,12 +51,12 @@ services:
       # lets the bot reach the gateway container-to-container, so LLM traffic never
       # leaves the host: no Cloudflare in the path (its Browser Integrity Check
       # answers the OpenAI SDK's User-Agent with error 1010 / HTTP 403) and no
-      # public egress. The explicit alias matters — the container's resolv.conf
-      # carries a `search` domain, so an unqualified short name could be answered
-      # by public DNS instead of Docker's embedded resolver.
-      router9:
-        aliases:
-          - router9int
+      # public egress.
+      # Address the gateway as `router9`: that alias already belongs to the 9router
+      # container on this network. A network alias declared on THIS service would
+      # resolve to this container instead of the gateway (that mistake shipped once
+      # and pointed the bot at itself).
+      router9: {}
 
 volumes:
   postgres_data:
