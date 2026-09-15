@@ -29,6 +29,10 @@ model:
   base_url: http://router9:20128/v1
   api_mode: chat_completions
   api_key: ${ROUTER9_API_KEY}
+  # context_length is emitted only when HERMES_CONTEXT_LENGTH is set (see
+  # .env.example): a 9router combo advertises no window, so without it Hermes
+  # falls back to its own 256k default and compacts history on that assumption.
+  # context_length: 512000
 
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: Asia/Ho_Chi_Minh

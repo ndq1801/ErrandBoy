@@ -31,10 +31,11 @@ export PATH="${TOOLS_ROOT}/bin:${PATH}"
 
 # Optional context-window override. Hermes resolves a model's context length
 # dynamically, but a 9router COMBO returns no metadata from /v1/models, so the
-# probe fails and Hermes falls back to its hardcoded 256k default. That default
-# is too large for the hermes-chat combo, whose primary member
-# (ocg/deepseek-flash) is 128k — compaction would then trigger too late and risk
-# provider-side context-overflow errors. Unset leaves the decision to Hermes.
+# probe fails and Hermes falls back to its hardcoded 256k default. The gateway
+# is no better a source: its per-model context_length is a hardcoded glob guess
+# that it never enforces, and the upstream provider publishes none. So this
+# value is what actually governs history compaction — too small and the bot
+# summarises away context it could still have sent. Unset lets Hermes decide.
 CONTEXT_LENGTH_LINE=""
 if [ -n "${HERMES_CONTEXT_LENGTH:-}" ]; then
     CONTEXT_LENGTH_LINE="  context_length: ${HERMES_CONTEXT_LENGTH}"
