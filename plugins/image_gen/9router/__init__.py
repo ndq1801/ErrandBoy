@@ -18,7 +18,8 @@ Image-to-image uses the multimodal chat route instead:
      "messages": [{"role": "user", "content": [{"type": "text", ...},
        {"type": "image_url", ...}, ...]}],
      "modalities": ["image", "text"],
-     "image_config": {"aspect_ratio": "16:9"}}
+     "image_config": {"aspect_ratio": "16:9"},
+     "stream": false}
 
 The generated image is read back from `choices[0].message.images[0].image_url.url`
 (a base64 data URI); a list `message.content` part of type `image_url` and a raw
@@ -367,6 +368,9 @@ class NineRouterImageGenProvider(ImageGenProvider):
             "messages": [{"role": "user", "content": content}],
             "modalities": ["image", "text"],
             "image_config": {"aspect_ratio": IMAGE_CONFIG_ASPECT[aspect]},
+            # 9router's chat route streams by default when `stream` is absent, which would
+            # return SSE instead of a JSON body; the edit response is parsed as JSON.
+            "stream": False,
         }
         try:
             response = requests.post(
