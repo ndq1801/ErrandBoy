@@ -29,6 +29,18 @@ mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,
 mkdir -p "${TOOLS_ROOT}/bin"
 export PATH="${TOOLS_ROOT}/bin:${PATH}"
 
+# Optional context-window override. Hermes resolves a model's context length
+# dynamically, but a 9router COMBO returns no metadata from /v1/models, so the
+# probe fails and Hermes falls back to its hardcoded 256k default. That default
+# is too large for the hermes-chat combo, whose primary member
+# (ocg/deepseek-flash) is 128k — compaction would then trigger too late and risk
+# provider-side context-overflow errors. Unset leaves the decision to Hermes.
+CONTEXT_LENGTH_LINE=""
+if [ -n "${HERMES_CONTEXT_LENGTH:-}" ]; then
+    CONTEXT_LENGTH_LINE="  context_length: ${HERMES_CONTEXT_LENGTH}"
+    echo "Model context length override: ${HERMES_CONTEXT_LENGTH}"
+fi
+
 # 1. Config: generated from env vars (all values come from the environment).
 # \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
 cat > "${HERMES_HOME}/config.yaml" <<EOF
@@ -48,6 +60,16 @@ model:
   base_url: ${HERMES_BASE_URL}
   api_mode: ${HERMES_API_MODE}
   api_key: \${ROUTER9_API_KEY}
+${CONTEXT_LENGTH_LINE}
+
+# Hide the built-in OpenCode provider group from the /model picker. Hermes ships
+# opencode-zen/opencode-go (plus the keyless opencode-free) in its static
+# catalog, so they appear in the picker regardless of what this bot configures.
+# Excluding the group keeps a stray pick from selecting a provider this
+# deployment no longer sets up.
+model_catalog:
+  excluded_providers:
+    - opencode
 
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: ${HERMES_TIMEZONE}
