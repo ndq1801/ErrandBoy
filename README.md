@@ -8,7 +8,7 @@ Telegram bot, backed by the MCP servers from
 Telegram ──► Hermes gateway (polling)
                 ├── model: hermes-chat via the self-hosted 9router gateway (custom OpenAI-compatible endpoint, reached container-to-container as http://router9:20128/v1); vision (hermes-vision) and image (hermes-image) requests also route through it — all ids are 9router combos
                 ├── mcp_servers: daily_report (node), finlog (python), jina (node, no-cache wrapper), obsidian (node), calendar (node)
-                ├── plugins: access-control (per-user x per-tool), image_gen/9router (text-to-image)
+                ├── plugins: access-control (per-user x per-tool), image_gen/9router (text-to-image; optional image-to-image via HERMES_IMAGE_EDIT_MODEL)
                 └── cron: scheduled jobs + wakeAgent gate scripts
 ```
 
