@@ -26,29 +26,22 @@ jobs:
             echo "=== Pulling latest code ==="
             cd ${{ env.PROJECT_DIR }}
             git fetch origin main
-            PREV_COMMIT=$(git rev-parse HEAD)
             git reset --hard origin/main
-            NEW_COMMIT=$(git rev-parse HEAD)
 
-            echo "=== Checking if a full hermes rebuild is needed ==="
-            # A heavy rebuild (apt install + hermes install.sh) only happens when the
-            # Dockerfile changes (pinned HERMES_COMMIT / CACHE_BUSTER / base image /
-            # apt deps). Light changes (entrypoint, plugins, docs) reuse the cache.
-            # When the heavy path is taken, prune the build cache FIRST so a full
-            # rebuild does not overflow the disk (a 15GB cache + fresh layers
-            # previously caused "no space left on device").
-            if git diff --name-only "$PREV_COMMIT" "$NEW_COMMIT" -- Dockerfile | grep -q .; then
-              echo "Dockerfile changed (full rebuild) - pruning docker build cache"
-              docker builder prune -f
-            else
-              echo "Dockerfile unchanged - reusing build cache"
-            fi
+            echo "=== Preparing a full hermes rebuild ==="
+            # Builds are deliberately cache-free: the hermes install layer must
+            # re-download and re-install on every deploy, so --no-cache is used
+            # below (a stale cached layer once shipped an image without the hermes
+            # binary). Prune the builder cache FIRST, because the disk peak happens
+            # during the build (cache + previous image + fresh layers) and
+            # previously caused "no space left on device".
+            docker builder prune -f
 
             echo "=== Starting background build ==="
             # Run build detached so the SSH session can close without killing it.
             # Log to a file; exit code captured for the poll step to detect failure.
             rm -f /tmp/errandboy-build.log /tmp/errandboy-build.exit
-            nohup setsid bash -c 'cd ${{ env.PROJECT_DIR }} && docker compose build errandboy > /tmp/errandboy-build.log 2>&1; echo $? > /tmp/errandboy-build.exit' > /dev/null 2>&1 &
+            nohup setsid bash -c 'cd ${{ env.PROJECT_DIR }} && docker compose build --no-cache errandboy > /tmp/errandboy-build.log 2>&1; echo $? > /tmp/errandboy-build.exit' > /dev/null 2>&1 &
             echo "Build started in background (pid $!)"
 
       - name: Wait for build to finish

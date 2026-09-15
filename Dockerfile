@@ -31,10 +31,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #   gh api <that object url>                                          (object.sha = commit)
 # --commit + --force-commit make install.sh fetch this exact SHA (it is behind
 # main, so the rollback guard needs --force-commit).
+# Cache-free by design: deploy.yml prunes the builder cache and builds with
+# --no-cache, so this layer re-downloads and re-installs hermes on every deploy
+# (a stale cached layer once shipped an image without the hermes binary). That
+# is also why no cache-buster ARG is needed anymore.
 ARG HERMES_COMMIT=939e45c91d751fadd94dcd1b873ac3cb44846213
-# Bump this value to force re-running install.sh (invalidates the stale layer
-# cache where the hermes binary was missing).
-ARG CACHE_BUSTER=20260914
 RUN curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
         "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
         -o /tmp/hermes-install.sh \
