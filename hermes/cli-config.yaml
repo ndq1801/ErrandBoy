@@ -1,17 +1,38 @@
 # REFERENCE TEMPLATE — not copied to the server anymore.
 # entrypoint.sh GENERATES $HERMES_HOME/config.yaml from REQUIRED env vars at
 # boot (HERMES_MODEL, HERMES_PROVIDER, HERMES_BASE_URL, HERMES_API_MODE,
-# HERMES_TIMEZONE, MCP_HUB_REPO_URL) — no defaults live in code. This file
-# only documents the intended shape.
+# ROUTER9_API_KEY, HERMES_TIMEZONE, MCP_HUB_REPO_URL) — no defaults live in
+# code. This file only documents the intended shape of the provider/model and
+# auxiliary blocks, so keep it in sync with what entrypoint.sh writes.
 #
 # Env placeholders like ${VAR} in mcp_servers are resolved by Hermes from
 # $HERMES_HOME/.env at runtime.
 
+# Named provider for the self-hosted 9router gateway, so the model picker can
+# probe {api}/models and list what the gateway offers. The main model still uses
+# provider: custom (the documented form for an arbitrary endpoint) and reads its
+# key from ROUTER9_API_KEY.
+providers:
+  "9router":
+    api: http://router9:20128/v1
+    key_env: ROUTER9_API_KEY
+    transport: chat_completions
+
 model:
   default: hermes-chat
   provider: custom
-  base_url: https://9router.olelukoie.online/v1
+  # Internal, container-to-container endpoint: docker-compose joins this service
+  # to 9router's own network, where the gateway answers to `router9`. The public
+  # hostname (https://9router.olelukoie.online/v1) is only for clients OUTSIDE
+  # the host — Cloudflare's Browser Integrity Check answers the OpenAI SDK's
+  # User-Agent with error 1010 (HTTP 403).
+  base_url: http://router9:20128/v1
   api_mode: chat_completions
+  api_key: ${ROUTER9_API_KEY}
+  # context_length is emitted only when HERMES_CONTEXT_LENGTH is set (see
+  # .env.example): a 9router combo advertises no window, so without it Hermes
+  # falls back to its own 256k default and compacts history on that assumption.
+  # context_length: 512000
 
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: Asia/Ho_Chi_Minh
@@ -59,6 +80,33 @@ mcp_servers:
 plugins:
   enabled:
     - access-control
+    # Image generation backend for the custom gateway (user plugin copied into
+    # $HERMES_HOME/plugins/image_gen/9router by entrypoint.sh). User plugins are
+    # opt-in: without this entry the image_generate tool stays hidden.
+    - image_gen/9router
+
+# Image generation through the gateway — written only when HERMES_IMAGE_MODEL is
+# set. The id is a 9router combo name forwarded verbatim, so generation returns
+# an image only once that combo points at a real image model.
+image_gen:
+  provider: 9router
+  model: hermes-image
+
+# Auxiliary model calls (vision, compression, session search, MCP helpers).
+# `stream_only_base_urls` is REQUIRED: this gateway appends an SSE `data: [DONE]`
+# marker to non-streaming bodies unless the request carries an explicit `stream`
+# field, which would break the JSON parse in every aux task. Declaring the main
+# endpoint here makes Hermes stream and aggregate aux responses instead.
+auxiliary:
+  stream_only_base_urls:
+    - http://router9:20128/v1
+  vision:
+    provider: custom
+    model: hermes-vision
+  # Auto-titling is disabled by default (it would use a fast/cheap gateway model
+  # instead of the main model); HERMES_TITLE_GENERATION=main opts back in.
+  title_generation:
+    enabled: false
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]) so the agent never infers "now" from stale history when a

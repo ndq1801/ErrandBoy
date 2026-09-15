@@ -29,6 +29,19 @@ mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,
 mkdir -p "${TOOLS_ROOT}/bin"
 export PATH="${TOOLS_ROOT}/bin:${PATH}"
 
+# Optional context-window override. Hermes resolves a model's context length
+# dynamically, but a 9router COMBO returns no metadata from /v1/models, so the
+# probe fails and Hermes falls back to its hardcoded 256k default. The gateway
+# is no better a source: its per-model context_length is a hardcoded glob guess
+# that it never enforces, and the upstream provider publishes none. So this
+# value is what actually governs history compaction — too small and the bot
+# summarises away context it could still have sent. Unset lets Hermes decide.
+CONTEXT_LENGTH_LINE=""
+if [ -n "${HERMES_CONTEXT_LENGTH:-}" ]; then
+    CONTEXT_LENGTH_LINE="  context_length: ${HERMES_CONTEXT_LENGTH}"
+    echo "Model context length override: ${HERMES_CONTEXT_LENGTH}"
+fi
+
 # 1. Config: generated from env vars (all values come from the environment).
 # \${...} references are left literal for Hermes to resolve from $HERMES_HOME/.env.
 cat > "${HERMES_HOME}/config.yaml" <<EOF
@@ -48,6 +61,16 @@ model:
   base_url: ${HERMES_BASE_URL}
   api_mode: ${HERMES_API_MODE}
   api_key: \${ROUTER9_API_KEY}
+${CONTEXT_LENGTH_LINE}
+
+# Hide the built-in OpenCode provider group from the /model picker. Hermes ships
+# opencode-zen/opencode-go (plus the keyless opencode-free) in its static
+# catalog, so they appear in the picker regardless of what this bot configures.
+# Excluding the group keeps a stray pick from selecting a provider this
+# deployment no longer sets up.
+model_catalog:
+  excluded_providers:
+    - opencode
 
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: ${HERMES_TIMEZONE}
@@ -178,17 +201,19 @@ EOF
 
 # Optional: image generation through the custom gateway. Requires the repo's
 # plugins/image_gen/9router backend (copied into $HERMES_HOME in step 2 and
-# enabled under plugins.enabled). The id below is a 9router combo name and is
-# forwarded verbatim, so generation only returns an image once that combo points
-# at a real image model.
+# enabled under plugins.enabled). The provider id is the backend's registered
+# name and this repo ships exactly one image backend, so it is a literal rather
+# than an env knob. The model id below is a 9router combo name and is forwarded
+# verbatim, so generation only returns an image once that combo points at a real
+# image model.
 if [ -n "${HERMES_IMAGE_MODEL:-}" ]; then
     cat >> "${HERMES_HOME}/config.yaml" <<EOF
 
 image_gen:
-  provider: ${HERMES_IMAGE_PROVIDER:-9router}
+  provider: 9router
   model: ${HERMES_IMAGE_MODEL}
 EOF
-    echo "Image generation: ${HERMES_IMAGE_PROVIDER:-9router}/${HERMES_IMAGE_MODEL}"
+    echo "Image generation: 9router/${HERMES_IMAGE_MODEL}"
 fi
 
 # Build a SINGLE merged auxiliary block. YAML duplicate keys would make the
@@ -203,11 +228,13 @@ AUX_ENTRIES="  stream_only_base_urls:
     - ${HERMES_BASE_URL}
 "
 if [ -n "${HERMES_VISION_MODEL:-}" ]; then
+    # Vision runs on the same provider/endpoint as the main model — only the
+    # model id differs, so no separate provider var is needed.
     AUX_ENTRIES="${AUX_ENTRIES}  vision:
-    provider: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}
+    provider: ${HERMES_PROVIDER}
     model: ${HERMES_VISION_MODEL}
 "
-    echo "Auxiliary vision model: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}/${HERMES_VISION_MODEL}"
+    echo "Auxiliary vision model: ${HERMES_PROVIDER}/${HERMES_VISION_MODEL}"
 fi
 
 # Title generation is DISABLED by default (auto-titling would otherwise use a
@@ -253,6 +280,11 @@ cat > "${HERMES_HOME}/.env" <<EOF
 # the endpoint lives in one place; the image_gen/9router plugin reads both.
 ROUTER9_BASE_URL=${HERMES_BASE_URL}
 ROUTER9_API_KEY=${ROUTER9_API_KEY:-}
+# Optional edit-capable model/combo for the image_gen/9router plugin. Use a
+# dedicated combo whose members are all edit-capable, so the image model is
+# changed on the gateway without touching this repo. Empty keeps the tool
+# text-to-image only; see the plugin's capabilities() gate for why.
+ROUTER9_IMAGE_EDIT_MODEL=${HERMES_IMAGE_EDIT_MODEL:-}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
 TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
 TELEGRAM_HOME_CHANNEL=${TELEGRAM_HOME_CHANNEL:-}

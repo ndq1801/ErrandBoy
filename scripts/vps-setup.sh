@@ -83,45 +83,29 @@ fi
 # ============================================================================
 echo "=== Creating .env file ==="
 if [ ! -f .env ]; then
-    cat > .env << 'ENVFILE'
-# === AI Model ===
-HERMES_MODEL=hermes-chat
-HERMES_PROVIDER=custom
-HERMES_BASE_URL=https://9router.olelukoie.online/v1
-HERMES_API_MODE=chat_completions
-HERMES_TIMEZONE=Asia/Ho_Chi_Minh
-MCP_HUB_REPO_URL=https://github.com/ndq1801/slave_mcps.git
-
-# === Telegram ===
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_ALLOWED_USERS=
-TELEGRAM_HOME_CHANNEL=
-TELEGRAM_HOME_CHANNEL_NAME=ErrandBoy
-
-# === Database ===
-POSTGRES_PASSWORD=CHANGE_ME
-DATABASE_URL=postgresql://finlog_user:CHANGE_ME@postgres:5432/finlogbot_db
-
-# === MCP: Daily Report ===
-DAILY_REPORT_BASE_URL=https://daily-report.wpdevelop.online
-DAILY_REPORT_USERNAME=
-DAILY_REPORT_PASSWORD=
-DAILY_REPORT_LOGIN_FIELD=email
-
-# === Optional ===
-BRAVE_SEARCH_API_KEY=
-JINA_API_KEY=
-ROUTER9_API_KEY=
-HERMES_VISION_MODEL=hermes-vision
-HERMES_VISION_PROVIDER=custom
-HERMES_IMAGE_MODEL=hermes-image
-HERMES_IMAGE_PROVIDER=9router
-ENVFILE
+    # .env.example is the single source of truth for the env contract — never
+    # duplicate the template here. A second inline copy once drifted and shipped
+    # the PUBLIC 9router URL, which Cloudflare answers with HTTP 403 (error 1010
+    # on the OpenAI SDK's User-Agent), plus it was missing the vars docker-compose
+    # interpolates into the volume mount targets.
+    cp .env.example .env
     chmod 600 .env
-    echo "Created .env — EDIT IT with your actual values!"
+    echo "Created .env from .env.example — EDIT IT with your actual values!"
+    echo "  Required: ROUTER9_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_HOME_CHANNEL, POSTGRES_PASSWORD"
     echo "  nano $PROJECT_DIR/.env"
 else
     echo ".env already exists, skipping."
+fi
+
+# The gateway is reached container-to-container over 9router's own network, and
+# docker-compose declares that network as external — so it must exist before
+# `docker compose up`, otherwise the deploy aborts with "network 9router_default
+# declared as external, but could not be found".
+if ! docker network inspect 9router_default >/dev/null 2>&1; then
+    echo "ERROR: docker network '9router_default' not found." >&2
+    echo "       Start the 9router stack first (its compose file lives in /srv/9router)," >&2
+    echo "       then re-run this script." >&2
+    exit 1
 fi
 
 # ============================================================================
