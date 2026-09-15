@@ -178,17 +178,19 @@ EOF
 
 # Optional: image generation through the custom gateway. Requires the repo's
 # plugins/image_gen/9router backend (copied into $HERMES_HOME in step 2 and
-# enabled under plugins.enabled). The id below is a 9router combo name and is
-# forwarded verbatim, so generation only returns an image once that combo points
-# at a real image model.
+# enabled under plugins.enabled). The provider id is the backend's registered
+# name and this repo ships exactly one image backend, so it is a literal rather
+# than an env knob. The model id below is a 9router combo name and is forwarded
+# verbatim, so generation only returns an image once that combo points at a real
+# image model.
 if [ -n "${HERMES_IMAGE_MODEL:-}" ]; then
     cat >> "${HERMES_HOME}/config.yaml" <<EOF
 
 image_gen:
-  provider: ${HERMES_IMAGE_PROVIDER:-9router}
+  provider: 9router
   model: ${HERMES_IMAGE_MODEL}
 EOF
-    echo "Image generation: ${HERMES_IMAGE_PROVIDER:-9router}/${HERMES_IMAGE_MODEL}"
+    echo "Image generation: 9router/${HERMES_IMAGE_MODEL}"
 fi
 
 # Build a SINGLE merged auxiliary block. YAML duplicate keys would make the
@@ -203,11 +205,13 @@ AUX_ENTRIES="  stream_only_base_urls:
     - ${HERMES_BASE_URL}
 "
 if [ -n "${HERMES_VISION_MODEL:-}" ]; then
+    # Vision runs on the same provider/endpoint as the main model — only the
+    # model id differs, so no separate provider var is needed.
     AUX_ENTRIES="${AUX_ENTRIES}  vision:
-    provider: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}
+    provider: ${HERMES_PROVIDER}
     model: ${HERMES_VISION_MODEL}
 "
-    echo "Auxiliary vision model: ${HERMES_VISION_PROVIDER:-${HERMES_PROVIDER}}/${HERMES_VISION_MODEL}"
+    echo "Auxiliary vision model: ${HERMES_PROVIDER}/${HERMES_VISION_MODEL}"
 fi
 
 # Title generation is DISABLED by default (auto-titling would otherwise use a
