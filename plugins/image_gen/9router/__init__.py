@@ -13,12 +13,13 @@ accepted in either OpenAI shape (`data[].b64_json` or `data[].url`).
 Two modes, same endpoint:
 
 * text-to-image — model comes from `image_gen.model`, body as above.
-* image-to-image — model comes from `ROUTER9_IMAGE_EDIT_MODEL` and the source
-  images are added to the same JSON body as `image` (first source) plus
-  `images` (list, when there are 2+ sources). The gateway exposes no
-  `/images/edits` route. Because adapters that cannot forward a source image
-  silently return a fresh text-to-image result, editing is only offered once an
-  edit model is configured — see `capabilities()`.
+* image-to-image — model comes from `ROUTER9_IMAGE_EDIT_MODEL` (a model id OR a
+  combo whose members are all edit-capable, so the image model can be swapped on
+  the gateway alone) and the source images are added to the same JSON body as
+  `image` (first source) plus `images` (list, when there are 2+ sources). The
+  gateway exposes no `/images/edits` route. Because adapters that cannot forward
+  a source image silently return a fresh text-to-image result, editing is only
+  offered once an edit-capable target is configured — see `capabilities()`.
 
 Config (`$HERMES_HOME/config.yaml`):
 
@@ -33,7 +34,7 @@ Env (`$HERMES_HOME/.env`):
     ROUTER9_BASE_URL=https://9router.example.com/v1
     ROUTER9_API_KEY=sk-...
     ROUTER9_IMAGE_MODEL=hermes-image   # optional fallback when image_gen.model is unset
-    ROUTER9_IMAGE_EDIT_MODEL=...       # optional; edit-capable model, enables image input
+    ROUTER9_IMAGE_EDIT_MODEL=...       # optional; edit-capable model or combo, enables image input
 """
 
 from __future__ import annotations
@@ -81,7 +82,7 @@ def _api_key() -> str:
 
 
 def _edit_model() -> str:
-    """Edit-capable model id; empty string means image input is not configured."""
+    """Edit-capable model id or combo; empty means image input is not configured."""
     return (get_secret("ROUTER9_IMAGE_EDIT_MODEL") or "").strip()
 
 

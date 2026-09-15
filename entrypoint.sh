@@ -280,8 +280,10 @@ cat > "${HERMES_HOME}/.env" <<EOF
 # the endpoint lives in one place; the image_gen/9router plugin reads both.
 ROUTER9_BASE_URL=${HERMES_BASE_URL}
 ROUTER9_API_KEY=${ROUTER9_API_KEY:-}
-# Optional edit-capable model for the image_gen/9router plugin. Empty keeps the
-# tool text-to-image only; see the plugin's capabilities() gate for why.
+# Optional edit-capable model/combo for the image_gen/9router plugin. Use a
+# dedicated combo whose members are all edit-capable, so the image model is
+# changed on the gateway without touching this repo. Empty keeps the tool
+# text-to-image only; see the plugin's capabilities() gate for why.
 ROUTER9_IMAGE_EDIT_MODEL=${HERMES_IMAGE_EDIT_MODEL:-}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
 TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
