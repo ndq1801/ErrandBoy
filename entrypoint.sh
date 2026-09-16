@@ -63,15 +63,6 @@ model:
   api_key: \${ROUTER9_API_KEY}
 ${CONTEXT_LENGTH_LINE}
 
-# Hide the built-in OpenCode provider group from the /model picker. Hermes ships
-# opencode-zen/opencode-go (plus the keyless opencode-free) in its static
-# catalog, so they appear in the picker regardless of what this bot configures.
-# Excluding the group keeps a stray pick from selecting a provider this
-# deployment no longer sets up.
-model_catalog:
-  excluded_providers:
-    - opencode
-
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: ${HERMES_TIMEZONE}
 

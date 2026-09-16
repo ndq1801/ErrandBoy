@@ -4,8 +4,8 @@
 # ROUTER9_API_KEY, HERMES_TIMEZONE, MCP_HUB_REPO_URL) — no defaults live in
 # code. This file documents the intended shape of the blocks entrypoint.sh
 # writes (provider/model, auxiliary, agent, gateway, plugins, image_gen); the
-# control-model blocks it also writes (model_catalog, approvals, memory,
-# skills, curator, command_allowlist) are not duplicated here. Keep this file
+# control-model blocks it also writes (approvals, memory, skills, curator,
+# command_allowlist) are not duplicated here. Keep this file
 # in sync with entrypoint.sh.
 #
 # Env placeholders like ${VAR} in mcp_servers are resolved by Hermes from

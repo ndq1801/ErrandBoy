@@ -14,12 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Hermes Agent (official installer, non-interactive).
 # PINNED to v0.21.2 (tag v2026.9.11) — the newest official release at the time
-# the bot was moved off the built-in `opencode-go` provider onto the
-# self-hosted 9router gateway (a custom OpenAI-compatible endpoint). v0.21.1+
-# also ships upstream PR #101864, which sends the OpenCode `x-opencode-session`
-# header natively, so the old in-container `default_headers` workaround is no
-# longer needed. Pinned to a release TAG (not main HEAD) so the deployed build
-# stays reproducible; bump deliberately after testing. NOTE: 08-12/08-13
+# the bot was moved onto the self-hosted 9router gateway (a custom
+# OpenAI-compatible endpoint). v0.21.1+ also sends the session header natively
+# (upstream PR #101864), so the old in-container `default_headers` workaround is
+# no longer needed. Pinned to a release TAG (not main HEAD) so the deployed
+# build stays reproducible; bump deliberately after testing. NOTE: 08-12/08-13
 # commits once broke Telegram connect with "Any cannot be instantiated" — always
 # re-test the gateway after a pin bump.
 # NOTE: this must be the tag's COMMIT sha, not the annotated tag-object sha.

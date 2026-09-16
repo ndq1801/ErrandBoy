@@ -36,7 +36,7 @@ Telegram ──► Hermes gateway (polling)
 > `router9_default` network, gateway alias `router9`) and `HERMES_BASE_URL` is
 > `http://router9:20128/v1`, so LLM traffic never leaves the host. The public
 > hostname `https://9router.olelukoie.online/v1` is only for clients *outside*
-> the host (local opencode, dashboard) — Cloudflare's Browser Integrity Check
+> the host (dashboard) — Cloudflare's Browser Integrity Check
 > answers the OpenAI SDK's User-Agent with HTTP 403 (error 1010). Verify with
 > `docker network inspect 9router_default`.
 
