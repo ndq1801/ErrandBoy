@@ -146,11 +146,12 @@ skills:
 curator:
   enabled: false
 
-# Bound agent persistence: 25 tool iterations per turn (gateway + cron) stops
-# long "keep trying alternatives" loops — the agent must report failure
-# instead of hunting for workarounds for 30 minutes.
+# Bound agent persistence: max tool iterations per turn (gateway + cron) —
+# stops long "keep trying alternatives" loops, so the agent must report failure
+# instead of hunting for workarounds for 30 minutes. Tunable via HERMES_MAX_TURNS
+# from .env; the 25 fallback keeps the previous hardcoded bound if it is unset.
 agent:
-  max_turns: 25
+  max_turns: ${HERMES_MAX_TURNS:-25}
   # Standing operator instructions injected into the system prompt as a
   # stable block ("Operator instructions (from config):"). Prefer dedicated
   # tools over shell workarounds so the agent uses the right tool for the job.
