@@ -158,6 +158,7 @@ agent:
     - "Prefer the dedicated tool for a task over shell workarounds: use the 'cronjob' tool for scheduling (never edit ~/.hermes/cron/jobs.json or run crontab directly), use MCP tools for their domains, and use read_file/write_file/patch for file operations."
     - "Reserve the terminal for builds, installs, git, processes, scripts, network, and package managers."
     - "When you need a CLI tool to persist across deploys (so the user does not have to reinstall it after each redeploy), ALWAYS install it into ${TOOLS_ROOT}/bin (a persistent volume; already first on PATH). NEVER install tools system-wide via apt-get or into /usr/local/bin or ~/.local/bin — those are reset (wiped) on every container redeploy and the user will lose the tool. Prefer release binaries or user-space installs rewritten into ${TOOLS_ROOT}/bin (e.g. curl a tarball and copy the binary there, incl. for pip/npm-installed CLIs)."
+    - "Editing an image the user sent (image-to-image) is NOT available through the 'image_generate' tool — that tool is text-to-image only. For any image-edit/restyle/redraw request, use the image-editing skill instead, and never pass image_url to 'image_generate'."
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old
@@ -280,10 +281,10 @@ cat > "${HERMES_HOME}/.env" <<EOF
 # the endpoint lives in one place; the image_gen/9router plugin reads both.
 ROUTER9_BASE_URL=${HERMES_BASE_URL}
 ROUTER9_API_KEY=${ROUTER9_API_KEY:-}
-# Optional edit-capable model/combo for the image_gen/9router plugin. Use a
-# dedicated combo whose members are all edit-capable, so the image model is
-# changed on the gateway without touching this repo. Empty keeps the tool
-# text-to-image only; see the plugin's capabilities() gate for why.
+# Edit model/combo for the image-editing skill. The image_gen/9router plugin no
+# longer reads it (that plugin is text-to-image only, so image input never
+# appears in the image_generate schema); it is exported here so the skill can
+# pick the edit model up from $HERMES_HOME/.env.
 ROUTER9_IMAGE_EDIT_MODEL=${HERMES_IMAGE_EDIT_MODEL:-}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
 TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
