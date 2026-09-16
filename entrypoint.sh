@@ -63,15 +63,6 @@ model:
   api_key: \${ROUTER9_API_KEY}
 ${CONTEXT_LENGTH_LINE}
 
-# Hide the built-in OpenCode provider group from the /model picker. Hermes ships
-# opencode-zen/opencode-go (plus the keyless opencode-free) in its static
-# catalog, so they appear in the picker regardless of what this bot configures.
-# Excluding the group keeps a stray pick from selecting a provider this
-# deployment no longer sets up.
-model_catalog:
-  excluded_providers:
-    - opencode
-
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: ${HERMES_TIMEZONE}
 
@@ -146,11 +137,12 @@ skills:
 curator:
   enabled: false
 
-# Bound agent persistence: 25 tool iterations per turn (gateway + cron) stops
-# long "keep trying alternatives" loops — the agent must report failure
-# instead of hunting for workarounds for 30 minutes.
+# Bound agent persistence: max tool iterations per turn (gateway + cron) —
+# stops long "keep trying alternatives" loops, so the agent must report failure
+# instead of hunting for workarounds for 30 minutes. Tunable via HERMES_MAX_TURNS
+# from .env; the 25 fallback keeps the previous hardcoded bound if it is unset.
 agent:
-  max_turns: 25
+  max_turns: ${HERMES_MAX_TURNS:-25}
   # Standing operator instructions injected into the system prompt as a
   # stable block ("Operator instructions (from config):"). Prefer dedicated
   # tools over shell workarounds so the agent uses the right tool for the job.
@@ -158,6 +150,7 @@ agent:
     - "Prefer the dedicated tool for a task over shell workarounds: use the 'cronjob' tool for scheduling (never edit ~/.hermes/cron/jobs.json or run crontab directly), use MCP tools for their domains, and use read_file/write_file/patch for file operations."
     - "Reserve the terminal for builds, installs, git, processes, scripts, network, and package managers."
     - "When you need a CLI tool to persist across deploys (so the user does not have to reinstall it after each redeploy), ALWAYS install it into ${TOOLS_ROOT}/bin (a persistent volume; already first on PATH). NEVER install tools system-wide via apt-get or into /usr/local/bin or ~/.local/bin — those are reset (wiped) on every container redeploy and the user will lose the tool. Prefer release binaries or user-space installs rewritten into ${TOOLS_ROOT}/bin (e.g. curl a tarball and copy the binary there, incl. for pip/npm-installed CLIs)."
+    - "Editing an image the user sent (image-to-image) is NOT available through the 'image_generate' tool — that tool is text-to-image only. For any image-edit/restyle/redraw request, use the image-editing skill instead, and never pass image_url to 'image_generate'."
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]). Prevents the agent from inferring a stale "now" from old
@@ -280,10 +273,10 @@ cat > "${HERMES_HOME}/.env" <<EOF
 # the endpoint lives in one place; the image_gen/9router plugin reads both.
 ROUTER9_BASE_URL=${HERMES_BASE_URL}
 ROUTER9_API_KEY=${ROUTER9_API_KEY:-}
-# Optional edit-capable model/combo for the image_gen/9router plugin. Use a
-# dedicated combo whose members are all edit-capable, so the image model is
-# changed on the gateway without touching this repo. Empty keeps the tool
-# text-to-image only; see the plugin's capabilities() gate for why.
+# Edit model/combo for the image-editing skill. The image_gen/9router plugin no
+# longer reads it (that plugin is text-to-image only, so image input never
+# appears in the image_generate schema); it is exported here so the skill can
+# pick the edit model up from $HERMES_HOME/.env.
 ROUTER9_IMAGE_EDIT_MODEL=${HERMES_IMAGE_EDIT_MODEL:-}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
 TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}

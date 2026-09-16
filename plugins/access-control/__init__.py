@@ -16,6 +16,10 @@ Control layers added for the ErrandBoy gateway:
           allowed; writes into system-wide bin dirs (EPHEMERAL_BIN_PATHS,
           wiped on every redeploy) are hard-blocked to steer installs into
           /opt/tools/bin; any other path requires the user's approval in chat.
+          Targets are canonicalized first ('.'/'..' segments collapsed,
+          repeated leading slashes reduced to one), so a path that only looks
+          like it sits under an allowed root (e.g. /tmp/../app/x) still hits
+          the block rules. Symlinks are not resolved.
   tier 4: terminal commands that reference /app or a defined-source file are
           hard-blocked (regardless of read/write intent); use the dedicated
           read_file/search_files tools instead.
@@ -137,6 +141,15 @@ def _gate_write_path(path):
     if not p:
         # Unknown target — fail closed: ask the user.
         return {"action": "approve", "message": "File write without a clear path — please confirm."}
+    # Canonicalize BEFORE the prefix checks below, otherwise a path that only
+    # looks like it lives under an allowed root can reach a blocked one
+    # (e.g. /tmp/../app/entrypoint.sh passed as-is). Re-apply the separator
+    # normalization because normpath returns backslashes on Windows platforms.
+    p = os.path.normpath(p).replace("\\", "/")
+    if p.startswith("//"):
+        # POSIX normpath preserves exactly two leading slashes, but the OS
+        # treats '//app/x' as '/app/x' — collapse them so the checks stay exact.
+        p = "/" + p.lstrip("/")
     if p == "/app" or p.startswith("/app/"):
         return {
             "action": "block",
