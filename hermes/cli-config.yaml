@@ -2,8 +2,11 @@
 # entrypoint.sh GENERATES $HERMES_HOME/config.yaml from REQUIRED env vars at
 # boot (HERMES_MODEL, HERMES_PROVIDER, HERMES_BASE_URL, HERMES_API_MODE,
 # ROUTER9_API_KEY, HERMES_TIMEZONE, MCP_HUB_REPO_URL) — no defaults live in
-# code. This file only documents the intended shape of the provider/model and
-# auxiliary blocks, so keep it in sync with what entrypoint.sh writes.
+# code. This file documents the intended shape of the blocks entrypoint.sh
+# writes (provider/model, auxiliary, agent, gateway, plugins, image_gen); the
+# control-model blocks it also writes (model_catalog, approvals, memory,
+# skills, curator, command_allowlist) are not duplicated here. Keep this file
+# in sync with entrypoint.sh.
 #
 # Env placeholders like ${VAR} in mcp_servers are resolved by Hermes from
 # $HERMES_HOME/.env at runtime.
@@ -107,6 +110,20 @@ auxiliary:
   # instead of the main model); HERMES_TITLE_GENERATION=main opts back in.
   title_generation:
     enabled: false
+
+# Bound agent persistence: max tool iterations per turn (gateway + cron) so the
+# agent reports failure instead of hunting for workarounds. entrypoint.sh
+# interpolates HERMES_MAX_TURNS here (see .env.example); 25 is its fallback.
+agent:
+  max_turns: 25
+  # Standing operator instructions injected into the system prompt as a stable
+  # block ("Operator instructions (from config):"). entrypoint.sh emits the same
+  # list with ${TOOLS_ROOT} substituted by its value.
+  coding_instructions:
+    - "Prefer the dedicated tool for a task over shell workarounds: use the 'cronjob' tool for scheduling (never edit ~/.hermes/cron/jobs.json or run crontab directly), use MCP tools for their domains, and use read_file/write_file/patch for file operations."
+    - "Reserve the terminal for builds, installs, git, processes, scripts, network, and package managers."
+    - "When you need a CLI tool to persist across deploys (so the user does not have to reinstall it after each redeploy), ALWAYS install it into ${TOOLS_ROOT}/bin (a persistent volume; already first on PATH). NEVER install tools system-wide via apt-get or into /usr/local/bin or ~/.local/bin — those are reset (wiped) on every container redeploy and the user will lose the tool. Prefer release binaries or user-space installs rewritten into ${TOOLS_ROOT}/bin (e.g. curl a tarball and copy the binary there, incl. for pip/npm-installed CLIs)."
+    - "Editing an image the user sent (image-to-image) is NOT available through the 'image_generate' tool — that tool is text-to-image only. For any image-edit/restyle/redraw request, use the image-editing skill instead, and never pass image_url to 'image_generate'."
 
 # Show each user message's send-time to the model (e.g. [Sat 2026-08-15
 # 10:00:00 +07]) so the agent never infers "now" from stale history when a

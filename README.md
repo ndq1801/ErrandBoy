@@ -115,7 +115,7 @@ Then:
   plugin auto-allows writes under `/opt/tools` and hard-blocks writes into
   `EPHEMERAL_BIN_PATHS`.
 - **Config is env-driven, no defaults in code**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`), the gateway key (`ROUTER9_API_KEY`), timezone (`HERMES_TIMEZONE`) and the MCP hub URL (`MCP_HUB_REPO_URL`) are **required** env vars — entrypoint fails fast on boot if any is missing. `entrypoint.sh` generates `config.yaml` from them every start, including the `providers.9router` entry (so the model picker can probe the gateway) and `auxiliary.stream_only_base_urls` (this gateway appends an SSE `data: [DONE]` marker to non-streaming bodies, which would break every auxiliary call without it).
-- **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` (default Asia/Ho_Chi_Minh); for per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
+- **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` — a required env var with no code default; `.env.example` ships `Asia/Ho_Chi_Minh`. For per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
   it later, put the entry back in `cli-config.yaml` + pass `SLACK_*` env vars.
 
@@ -125,13 +125,21 @@ The gateway must never act without your consent:
 
 - **Shell commands** — `approvals.mode: smart`: a read-only `command_allowlist`
   (`grep`, `ls`, `df`, `hermes sessions list`, ...) runs without prompting,
-  everything else is prompted in Telegram for approve/deny, and commands
-  referencing `/app` or a defined-source file are hard-blocked outright.
+  everything else is prompted in Telegram for approve/deny, and commands whose
+  text contains `/app` or a defined-source file name are blocked. That block is
+  a best-effort substring check, not a security boundary (shell quoting can
+  evade it) — the approval prompt is the real gate.
 - **File writes** — the `access-control` plugin gates `write_file`/`patch`:
-  writes under `$HERMES_HOME`, `/tmp`, the vault, `/opt/tools` and
+  the target path is canonicalized first (`.`/`..` segments collapsed, repeated
+  leading slashes reduced to one), so a path that only *looks* like it lives
+  under an allowed root (e.g. `/tmp/../app/x`) still hits the block rules.
+  Writes under `$HERMES_HOME`, `/tmp`, the vault, `/opt/tools` and
   `/root/projects` are allowed, writes to `/app/**` are hard-blocked
   (infrastructure is immutable — change it via this repo), and any other path
-  requires your approval in chat.
+  requires your approval in chat. Known gap: a `patch` call in `mode: patch`
+  embeds its targets in the payload instead of a `path` field, so there only
+  the defined-source file names are hard-blocked — an `/app/**` target in such
+  a payload falls back to the approval prompt.
 - **Memory/skill writes** — saved directly, no approval (`memory.write_approval: false`, `skills.write_approval: false`).
 - **Cron changes** — pre-authorized: the agent may create/update/pause/
   resume/remove/run cron jobs without approval (both the `cronjob` tool and
