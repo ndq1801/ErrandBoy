@@ -22,7 +22,11 @@ services:
     container_name: errandboy
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://finlog_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/finlogbot_db
+      # Explicit psycopg2 driver: the bare postgresql:// scheme makes
+      # SQLAlchemy 2.1 (unpinned in mcp-finlog) resolve to psycopg v3, which is
+      # not installed -> alembic migration fails at boot. psycopg2-binary is
+      # installed by mcp-finlog's requirements.
+      - DATABASE_URL=postgresql+psycopg2://finlog_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/finlogbot_db
       # git's global config lives in the persistent hermes volume so the gh
       # credential helper setup survives --force-recreate.
       - GIT_CONFIG_GLOBAL=${HERMES_HOME}/.gitconfig
