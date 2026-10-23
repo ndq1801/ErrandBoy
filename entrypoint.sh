@@ -26,8 +26,12 @@ mkdir -p "${HERMES_HOME}"/{memories,skills,sessions,cron,cron/output,hooks,logs,
 # Persistent tool bin (tools_data / host bind): CLI tools the agent installs
 # here survive redeploys. Put it FIRST in PATH so agent-installed tools win
 # over ephemeral system-wide ones (which reset on every --force-recreate).
+# /opt/node/bin comes next: the image's pinned, patched Node runtime used by the
+# MCP servers. It must beat Hermes' own copy ($HERMES_HOME/node, symlinked from
+# /usr/local/bin), which lives in the persistent volume and can lag behind.
 mkdir -p "${TOOLS_ROOT}/bin"
-export PATH="${TOOLS_ROOT}/bin:${PATH}"
+export PATH="${TOOLS_ROOT}/bin:/opt/node/bin:${PATH}"
+echo "node: $(node -v 2>/dev/null || echo 'not found') ($(command -v node || echo 'not found'))"
 
 # Optional context-window override. Hermes resolves a model's context length
 # dynamically, but a 9router COMBO returns no metadata from /v1/models, so the
