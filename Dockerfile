@@ -6,11 +6,32 @@
 
 FROM python:3.13-slim
 
-# Runtime tooling: git (mcp-hub clone), node (MCP servers), tini (zombie
-# reaping for MCP subprocesses), tzdata (Python zoneinfo in finlog).
+# Runtime tooling: git (mcp-hub clone), curl/xz (pinned Node tarball), tini
+# (zombie reaping for MCP subprocesses), tzdata (Python zoneinfo in finlog).
+# Node is deliberately NOT installed from apt: Debian ships 20.x, which is EOL
+# and therefore never receives Node security fixes.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl bash git nodejs npm build-essential tini tzdata \
+        curl bash git build-essential xz-utils tini tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+# Node runtime for the MCP servers (stdio). Pinned to a PATCHED release:
+# CVE-2026-111497 (Brotli decoder out-of-bounds write -> RCE) is fixed in
+# 22.23.4. The checksum guards the tarball against a swapped upstream artifact.
+# /opt/node/bin must stay AHEAD of /usr/local/bin in PATH: Hermes' installer
+# drops its own `node` symlink there pointing at $HERMES_HOME/node, a
+# persistent-volume copy that can lag behind this pin.
+ARG NODE_VERSION=22.23.4
+ARG NODE_SHA256=1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce
+RUN curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+        "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+        -o /tmp/node.tar.xz \
+    && echo "${NODE_SHA256}  /tmp/node.tar.xz" | sha256sum -c - \
+    && mkdir -p /opt/node \
+    && tar -xJf /tmp/node.tar.xz -C /opt/node --strip-components=1 \
+    && rm -f /tmp/node.tar.xz \
+    && /opt/node/bin/node -v \
+    && /opt/node/bin/npm -v
+ENV PATH="/opt/node/bin:${PATH}"
 
 # Install Hermes Agent (official installer, non-interactive).
 # PINNED to v0.21.2 (tag v2026.9.11) — the newest official release at the time
