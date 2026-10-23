@@ -30,7 +30,9 @@ RUN curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
     && tar -xJf /tmp/node.tar.xz -C /opt/node --strip-components=1 \
     && rm -f /tmp/node.tar.xz \
     && /opt/node/bin/node -v \
-    && /opt/node/bin/npm -v
+    && PATH="/opt/node/bin:${PATH}" /opt/node/bin/npm -v
+# npm is a `#!/usr/bin/env node` script, and the ENV below only applies to
+# instructions AFTER it — hence the inline PATH on the smoke test above.
 ENV PATH="/opt/node/bin:${PATH}"
 
 # Install Hermes Agent (official installer, non-interactive).
