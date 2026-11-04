@@ -1,0 +1,10 @@
+name: web-9router
+version: 1.0.0
+description: "9router web search/extract backend — routes web_search and web_extract through the self-hosted 9router gateway"
+author: ndq1801
+kind: backend
+provides_web_providers:
+  - 9router
+requires_env:
+  - ROUTER9_BASE_URL
+  - ROUTER9_API_KEY

@@ -40,6 +40,15 @@ model:
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: Asia/Ho_Chi_Minh
 
+# Built-in web tools (web_search / web_extract) go through the 9router gateway
+# via plugins/web/9router. Vendor API keys stay on the gateway; this container
+# only needs ROUTER9_BASE_URL + ROUTER9_API_KEY. Caching and keyless fallback
+# are disabled so every call goes through 9router and stays live.
+web:
+  backend: 9router
+  cache_enabled: false
+  keyless_fallback: false
+
 mcp_servers:
   daily_report:
     command: node
@@ -58,11 +67,16 @@ mcp_servers:
       DATABASE_URL: ${DATABASE_URL}
       FINLOG_TELEGRAM_USER_ID: ${TELEGRAM_HOME_CHANNEL}
       FINLOG_MASTER_TELEGRAM_ID: ${TELEGRAM_HOME_CHANNEL}
-  jina:
+  backlog:
     command: node
-    args: ["/app/mcp/jina-fresh.js"]
+    args: ["/app/mcp-hub/mcp-backlog/index.js"]
+    cwd: /app/mcp-hub/mcp-backlog
     env:
-      JINA_API_KEY: ${JINA_API_KEY}
+      BACKLOG_API_URL: ${BACKLOG_API_URL}
+      BACKLOG_EMAIL: ${BACKLOG_EMAIL}
+      BACKLOG_PASSWORD: ${BACKLOG_PASSWORD}
+      BACKLOG_LANGUAGE: ${BACKLOG_LANGUAGE}
+      BACKLOG_COMPANY_ID: ${BACKLOG_COMPANY_ID}
   obsidian:
     command: node
     args: ["/app/mcp-hub/mcp-obsidian/index.js"]
@@ -87,6 +101,9 @@ plugins:
     # $HERMES_HOME/plugins/image_gen/9router by entrypoint.sh). User plugins are
     # opt-in: without this entry the image_generate tool stays hidden.
     - image_gen/9router
+    # Web search/extract backend (plugins/web/9router): web_search and
+    # web_extract call the 9router gateway instead of vendor APIs directly.
+    - web/9router
 
 # Image generation through the gateway — written only when HERMES_IMAGE_MODEL is
 # set. The id is a 9router combo name forwarded verbatim, so generation returns
