@@ -2,13 +2,14 @@
 
 Hermes Agent (Nous Research) personal assistant deployed on a **VPS** as a
 Telegram bot, backed by the MCP servers from
-[slave_mcps](https://github.com/ndq1801/slave_mcps) (daily-report, finlog).
+[slave_mcps](https://github.com/ndq1801/slave_mcps) (daily-report, finlog,
+backlog, obsidian, calendar).
 
 ```
 Telegram ──► Hermes gateway (polling)
                 ├── model: hermes-chat via the self-hosted 9router gateway (custom OpenAI-compatible endpoint, reached container-to-container as http://router9:20128/v1); vision (hermes-vision) and image (hermes-image) requests also route through it — all ids are 9router combos
-                ├── mcp_servers: daily_report (node), finlog (python), jina (node, no-cache wrapper), obsidian (node), calendar (node)
-                ├── plugins: access-control (per-user x per-tool), image_gen/9router (text-to-image only; image edits go through an agent skill that calls the gateway's chat route directly)
+                ├── mcp_servers: daily_report (node), finlog (python), backlog (node), obsidian (node), calendar (node)
+                ├── plugins: access-control (per-user x per-tool), image_gen/9router (text-to-image), web/9router (search/extract via the gateway)
                 └── cron: scheduled jobs + wakeAgent gate scripts
 ```
 
@@ -23,7 +24,7 @@ Telegram ──► Hermes gateway (polling)
 | `hermes/SOUL.md` | Assistant persona (copied to `$HERMES_HOME/SOUL.md`) |
 | `plugins/access-control/` | Plugin: block state-changing MCP tools for unauthorized users |
 | `plugins/image_gen/9router/` | Plugin: text-to-image backend for the gateway (`{ROUTER9_BASE_URL}/images/generations`) |
-| `mcp/jina-fresh.js` | Local no-cache Jina Reader wrapper used by the `jina` MCP server |
+| `plugins/web/9router/` | Plugin: routes `web_search`/`web_extract` through the 9router gateway (`/v1/search`, `/v1/web/fetch`) |
 | `scripts/vps-setup.sh` | One-shot VPS host setup: deps, clone, `.env` from `.env.example`, 9router network check, first build |
 | `.github/workflows/deploy.yml` | Auto-deploy on push to `main` (cache-free full rebuild) |
 | `cron/check_user_hour.py` | Example `wakeAgent` gate script (user-local-time cron) |
@@ -115,6 +116,7 @@ Then:
   plugin auto-allows writes under `/opt/tools` and hard-blocks writes into
   `EPHEMERAL_BIN_PATHS`.
 - **Config is env-driven, no defaults in code**: model/provider/base_url/api_mode (`HERMES_MODEL`, `HERMES_PROVIDER`, `HERMES_BASE_URL`, `HERMES_API_MODE`), the gateway key (`ROUTER9_API_KEY`), timezone (`HERMES_TIMEZONE`) and the MCP hub URL (`MCP_HUB_REPO_URL`) are **required** env vars — entrypoint fails fast on boot if any is missing. `entrypoint.sh` generates `config.yaml` from them every start, including the `providers.9router` entry (so the model picker can probe the gateway) and `auxiliary.stream_only_base_urls` (this gateway appends an SSE `data: [DONE]` marker to non-streaming bodies, which would break every auxiliary call without it).
+- **Web search/extract go through 9router**: `config.yaml` sets `web.backend: 9router`, implemented by `plugins/web/9router`. `web_search` calls `POST {ROUTER9_BASE_URL}/search` and `web_extract` calls `POST {ROUTER9_BASE_URL}/web/fetch` with `ROUTER9_API_KEY`; Brave/Jina keys live on the 9router dashboard. `cache_enabled: false` keeps extracts live (no 20-minute disk cache) and `keyless_fallback: false` prevents silent fallback to public free tiers when the gateway is down.
 - **Cron**: create jobs with `hermes cron create` (e.g. daily report reminder at 18:00). Timezone is global via `HERMES_TIMEZONE` — a required env var with no code default; `.env.example` ships `Asia/Ho_Chi_Minh`. For per-user local hours use `cron/check_user_hour.py` as the job's `--script` gate.
 - **Slack MCP server** is intentionally not wired up in this project. To add
   it later, put the entry back in `cli-config.yaml` + pass `SLACK_*` env vars.

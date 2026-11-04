@@ -65,6 +65,12 @@ SENSITIVE_SUFFIXES = (
     "__add_category",
     "__update_category",
     "__delete_category",
+    # backlog (mutations only; reads are harmless)
+    "__create_issue",
+    "__update_issue",
+    "__add_comment",
+    "__log_time",
+    "__api_write",
     # obsidian (mutations only; reads are harmless)
     "__create_note",
     "__append_note",

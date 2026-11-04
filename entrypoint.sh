@@ -70,6 +70,16 @@ ${CONTEXT_LENGTH_LINE}
 # Cron runs in this timezone (cron jobs have no per-job timezone).
 timezone: ${HERMES_TIMEZONE}
 
+# Built-in web tools (web_search / web_extract) are routed through the 9router
+# gateway by plugins/web/9router. Vendor API keys (Brave, Jina, ...) stay on the
+# gateway; this container only needs ROUTER9_BASE_URL + ROUTER9_API_KEY.
+# Caching and the keyless free-tier fallback are off so results stay live and
+# every call goes through 9router.
+web:
+  backend: 9router
+  cache_enabled: false
+  keyless_fallback: false
+
 mcp_servers:
   daily_report:
     command: node
@@ -88,11 +98,16 @@ mcp_servers:
       DATABASE_URL: \${DATABASE_URL}
       FINLOG_TELEGRAM_USER_ID: \${TELEGRAM_HOME_CHANNEL}
       FINLOG_MASTER_TELEGRAM_ID: \${TELEGRAM_HOME_CHANNEL}
-  jina:
+  backlog:
     command: node
-    args: ["/app/mcp/jina-fresh.js"]
+    args: ["/app/mcp-hub/mcp-backlog/index.js"]
+    cwd: /app/mcp-hub/mcp-backlog
     env:
-      JINA_API_KEY: \${JINA_API_KEY}
+      BACKLOG_API_URL: \${BACKLOG_API_URL}
+      BACKLOG_EMAIL: \${BACKLOG_EMAIL}
+      BACKLOG_PASSWORD: \${BACKLOG_PASSWORD}
+      BACKLOG_LANGUAGE: \${BACKLOG_LANGUAGE}
+      BACKLOG_COMPANY_ID: \${BACKLOG_COMPANY_ID}
   obsidian:
     command: node
     args: ["/app/mcp-hub/mcp-obsidian/index.js"]
@@ -115,8 +130,11 @@ plugins:
     - access-control
     # Image generation backend for the custom gateway (user plugin copied into
     # $HERMES_HOME/plugins/image_gen/9router by step 2). User plugins are opt-in:
-    # without this entry the image_generate tool stays hidden from the agent.
+    # without this entry the image_generate tool stays hidden.
     - image_gen/9router
+    # Web search/extract backend (plugins/web/9router): web_search and
+    # web_extract call the 9router gateway instead of vendor APIs directly.
+    - web/9router
 
 # Control model: shell approvals run in smart mode — the guardian
 # auto-approves safe commands while approvals.deny hard-blocks anything
@@ -291,8 +309,16 @@ DAILY_REPORT_BASE_URL=${DAILY_REPORT_BASE_URL:-}
 DAILY_REPORT_USERNAME=${DAILY_REPORT_USERNAME:-}
 DAILY_REPORT_PASSWORD=${DAILY_REPORT_PASSWORD:-}
 DAILY_REPORT_LOGIN_FIELD=${DAILY_REPORT_LOGIN_FIELD:-email}
-BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
-JINA_API_KEY=${JINA_API_KEY:-}
+# --- Web search/extract via 9router (plugins/web/9router) ---
+# Combo names created on the 9router dashboard.
+ROUTER9_WEB_SEARCH_MODEL=${ROUTER9_WEB_SEARCH_MODEL:-search-combo}
+ROUTER9_WEB_FETCH_MODEL=${ROUTER9_WEB_FETCH_MODEL:-fetch-combo}
+# --- MCP: mcp-backlog ---
+BACKLOG_API_URL=${BACKLOG_API_URL:-}
+BACKLOG_EMAIL=${BACKLOG_EMAIL:-}
+BACKLOG_PASSWORD=${BACKLOG_PASSWORD:-}
+BACKLOG_LANGUAGE=${BACKLOG_LANGUAGE:-vi}
+BACKLOG_COMPANY_ID=${BACKLOG_COMPANY_ID:-}
 # --- MCP: mcp-obsidian / mcp-calendar ---
 OBSIDIAN_VAULT_PATH=${OBSIDIAN_VAULT_PATH}
 GOOGLE_CALENDAR_CLIENT_ID=${GOOGLE_CALENDAR_CLIENT_ID:-}
